@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="A local dashboard for X post submissions, randomized profile reveals, and community connections.">
+  <title>GET PAID — Route fees through X money</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='white'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='bold' letter-spacing='-2' fill='black'%3EGP%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css"><script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="GP — GET PAID home"><img class="gp-logo" src="assets/gp-monogram.png" width="44" height="44" alt="GP"><span class="brand-name">GET PAID</span></a>
+      <nav class="header-actions" aria-label="Main navigation">
+        <div class="treasury-wallet" role="group" aria-labelledby="treasury-label">
+          <div class="treasury-details"><span id="treasury-label">Public treasury wallet</span><code id="treasury-address">7CVZZLWaerL6b42Bo5kkpKnEEGXYf8MLAUVAiNLymqiv</code></div>
+          <button type="button" id="copy-treasury" class="icon-button" aria-label="Copy public treasury wallet" title="Copy public treasury wallet">⧉</button>
+        </div>
+        <button class="buy-button" id="buy">Buy <span aria-hidden="true">↗</span></button>
+      </nav>
+    </header>
+    <div class="contract"><span class="network-dot"></span><span class="contract-label">CA:</span><code id="coin-address">Your coin address here</code><span class="contract-tag" id="contract-tag">Coming soon</span><button id="copy-address" class="icon-button" aria-label="Copy coin address" hidden>⧉</button></div>
+    <main id="main">
+      <section class="intro" aria-labelledby="headline">
+        <div class="spotlight-strip" role="group" aria-label="Featured names">
+          <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong>$24.50</strong><span>routed to</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">M</span><strong id="featured-name">Maya Chen</strong></div>
+        </div>
+        <h1 id="headline">Route fees through <span>X money</span></h1>
+        <p>A post, a handle, and your next payout.</p>
+      </section>
+      <div class="workspace">
+        <section class="panel submit-panel" aria-labelledby="submit-title">
+          <div class="panel-heading"><span class="eyebrow"><span class="small-symbol" aria-hidden="true">↗</span> MAKE A CONNECTION</span><span class="muted x-mark" aria-hidden="true">𝕏</span></div>
+          <h2 id="submit-title">Put your handle in the mix.</h2>
+          <p class="description">Share your post. Your name appears when the timer is up.</p>
+          <form id="submission-form" novalidate>
+            <label for="post-url">Twitter / X post URL</label>
+            <div class="input-wrap"><span aria-hidden="true">↗</span><input id="post-url" name="post" type="url" placeholder="https://x.com/you/status/…" autocomplete="url" maxlength="2048" required aria-describedby="post-error"></div>
+            <p class="field-error" id="post-error"></p>
+            <label for="x-handle">Your X handle</label>
+            <div class="input-wrap"><span aria-hidden="true">@</span><input id="x-handle" name="handle" placeholder="yourhandle" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="16" required aria-describedby="handle-help handle-error"></div>
+            <p class="input-help" id="handle-help">Your @username, not your display name. Letters, numbers, and underscores only.</p>
+            <p class="field-error" id="handle-error"></p>
+            <button class="primary-button" type="submit" id="submit-button">Add to the queue <span aria-hidden="true">↗</span></button>
+            <p class="form-error" id="form-error" role="alert"></p>
+          </form>
+        </section>
+        <section class="panel reveals-panel" aria-labelledby="reveals-title">
+          <div class="panel-heading"><h2 id="reveals-title">The reveal room<span class="count-badge" id="total-badge">0</span></h2></div>
+          <p class="description">The shared queue. A new name, a new connection.</p>
+          <p id="connection-status" class="connection-status" role="status" hidden></p>
+          <div id="reveal-list" class="reveal-list"></div>
+          <nav class="list-pagination" id="list-pagination" aria-label="Submission pages" hidden><button type="button" id="previous-page" aria-label="Previous submissions">←</button><span id="page-summary" aria-live="polite"></span><button type="button" id="next-page" aria-label="Next submissions">→</button></nav>
+          <div class="empty-state" id="empty-state"><div class="orbit-art" aria-hidden="true"><span class="orbit-dot one"></span><span class="orbit-dot two"></span><div class="orbit-center">@</div></div><h3>Every connection starts somewhere.</h3><p>Add your post and handle.<br>Your name could be next.</p></div>
+        </section>
+      </div>
+      <section class="how-it-works" aria-labelledby="how-title">
+        <div class="how-heading"><div><span class="eyebrow">FROM POST TO PAYOUT</span><h2 id="how-title">How it works</h2></div><span class="workflow-tag">Planned payment flow</span></div>
+        <ol class="steps">
+          <li><span class="step-number">01</span><h3>Buy the coin</h3><p>Use the Buy button to purchase the coin and get started.</p></li>
+          <li><span class="step-number">02</span><h3>Spread the word on X</h3><p>Publish a post about the coin on X (Twitter), then copy the link to your post.</p></li>
+          <li><span class="step-number">03</span><h3>Submit your post</h3><p>Paste your post link into the box above and enter your X handle so we know who to reward.</p></li>
+          <li><span class="step-number">04</span><h3>Get verified and paid</h3><p>Our bot checks your post. Once approved, your reward is sent through X Money using $PAID technology.</p></li>
+        </ol>
+      </section>
+    </main>
+    <footer><span class="footer-brand">GET PAID</span></footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <p id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+  <dialog id="buy-dialog" aria-labelledby="buy-title">
+    <form method="dialog">
+      <button class="dialog-close icon-button" aria-label="Close coin address">×</button>
+      <span class="dialog-icon" aria-hidden="true">↗</span>
+      <h2 id="buy-title">Buy GET PAID</h2>
+      <p id="buy-description">Coin contract address</p>
+      <div class="buy-ca"><span>CA:</span><code id="buy-coin-address">Your coin address here</code></div>
+      <p class="buy-ca-status" id="buy-ca-status">Coin address coming soon.</p>
+      <button type="button" class="primary-button" id="buy-copy-address" hidden>Copy CA</button>
+      <button class="dialog-done">Done</button>
+    </form>
+  </dialog>
+</body>
+</html>
+
+
