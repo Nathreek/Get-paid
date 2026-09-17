@@ -1,9 +1,11 @@
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createStore } from './store.mjs';
 import { createAppServer } from './http-server.mjs';
-const database=path.resolve(process.env.DB_PATH||fileURLToPath(new URL('./data/submissions.sqlite',import.meta.url)));
+const defaultDatabasePath=process.env.VERCEL?path.join(tmpdir(),'get-paid','submissions.sqlite'):fileURLToPath(new URL('./data/submissions.sqlite',import.meta.url));
+const database=path.resolve(process.env.DB_PATH||defaultDatabasePath);
 await mkdir(path.dirname(database),{recursive:true});
 const store=createStore(database);
 const server=createAppServer({directory:fileURLToPath(new URL('./dist/',import.meta.url)),store,secureCookies:process.env.SECURE_COOKIES==='true'});
