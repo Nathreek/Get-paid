@@ -35,7 +35,7 @@ if(warmed){
 lag.enable();start=performance.now();
 await Promise.all(clients.map(async(client,i)=>{
   try{
-    await request(client,'/');await request(client,'/app.js');await request(client,'/api/state');
+    await request(client,'/');await request(client,'/client.js');await request(client,'/api/state');
     await request(client,'/api/submissions','POST',{handle:`load${i}`,post:`https://x.com/load${i}/status/${i+1}`});
     const state=JSON.parse(await request(client,'/api/state'));
     if(state.records.length>25)throw new Error('Unbounded page');

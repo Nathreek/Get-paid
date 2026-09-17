@@ -24,7 +24,7 @@ async function request(client,url,method='GET',payload){
 }
 const started=performance.now();
 await Promise.all(Array.from({length:clients},async(_,i)=>{const client={};try{
-  await request(client,'/');await request(client,'/styles.css');await request(client,'/app.js');await request(client,'/api/state');
+  await request(client,'/');await request(client,'/styles.css');await request(client,'/client.js');await request(client,'/api/state');
   await request(client,'/api/submissions','POST',{handle:`visitor${i}`,post:`https://x.com/visitor${i}/status/${i+1}`});
   for(let j=0;j<4;j++){const state=JSON.parse(await request(client,`/api/state?page=${j%2}`));if(state.records.length>25)throw new Error('Page exceeded 25 records');}
 }catch(error){errors.push(error.message);}}));
