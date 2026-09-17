@@ -1,6 +1,3 @@
 {
-  "version": 2,
-  "rewrites": [
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/api/_route/$1" }
-  ]
+  "version": 2
 }
