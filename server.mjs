@@ -9,7 +9,7 @@ const database=path.resolve(process.env.DB_PATH||defaultDatabasePath);
 await mkdir(path.dirname(database),{recursive:true});
 const store=createStore(database);
 const server=createAppServer({directory:fileURLToPath(new URL('./dist/',import.meta.url)),store,secureCookies:process.env.SECURE_COOKIES==='true'});
-const port=Number(process.env.PORT||4173),host=process.env.HOST||'127.0.0.1';
+const port=Number(process.env.PORT||4173),host=process.env.HOST||'0.0.0.0';
 server.listen({port,host,backlog:8192},()=>console.log(`GET PAID is running at http://${host}:${port}`));
 let closing=false;
 function close(){if(closing)return;closing=true;server.close(()=>{store.close();process.exit(0);});setTimeout(()=>server.closeAllConnections(),5000).unref();}
