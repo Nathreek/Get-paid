@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { config } from './dist/config.js';
-import { createStore } from './store.mjs';
+import { createStore, TIERS, TIER_SIZE } from './store.mjs';
 import { createVerifier } from './verify.mjs';
 import { createPayer, solPrice } from './payout.mjs';
 
@@ -30,7 +30,27 @@ export async function createAppStore(env = process.env) {
     payoutIntervalMs: Number(env.PAYOUT_INTERVAL_SECONDS || 10) * 1000,
     dailyCapCents: Math.round(Number(env.MAX_DAILY_PAYOUT_USD || 100) * 100),
     maxPerAccount: Number(env.MAX_PAYOUTS_PER_ACCOUNT || 1),
+    ...payoutAmounts(env),
   });
+}
+
+const cents = usd => Math.round(Number(usd) * 100);
+// PAYOUT_FIXED_USD=5 pays everyone $5. Otherwise PAYOUT_TIERS="3-5,6-10,..." (USD ranges) rises every PAYOUT_TIER_SIZE payouts.
+export function payoutAmounts(env) {
+  if (env.PAYOUT_FIXED_USD) {
+    const fixedCents = cents(env.PAYOUT_FIXED_USD);
+    if (!(fixedCents > 0)) throw new Error('PAYOUT_FIXED_USD must be a positive number, e.g. 5 or 2.50.');
+    return { fixedCents };
+  }
+  const tierSize = env.PAYOUT_TIER_SIZE ? Number(env.PAYOUT_TIER_SIZE) : TIER_SIZE;
+  if (!Number.isInteger(tierSize) || tierSize < 1) throw new Error('PAYOUT_TIER_SIZE must be a whole number of payouts, e.g. 30.');
+  if (!env.PAYOUT_TIERS) return { tiers: TIERS, tierSize };
+  const tiers = env.PAYOUT_TIERS.split(',').map(range => {
+    const [low, high = low] = range.split('-').map(value => cents(value.trim().replace(/^\$/, '')));
+    if (!(low > 0 && high >= low)) throw new Error(`PAYOUT_TIERS has an invalid range "${range.trim()}". Use e.g. 3-5,6-10,10-15.`);
+    return [low, high];
+  });
+  return { tiers, tierSize };
 }
 
 // Local convenience: load .env if present (hosts set real environment variables instead).

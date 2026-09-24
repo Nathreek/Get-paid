@@ -9,16 +9,9 @@ People post about the coin on X, submit the post link and their Solana wallet, a
 3. **Queue.** Approved posts appear in the reveal room as *Approved · queued*.
 4. **Pay.** Queued entries are paid oldest first, one every `PAYOUT_INTERVAL_SECONDS`. The dollar amount follows the tiers below and is converted to SOL at the live price (Jupiter, CoinGecko fallback). Each row links to its Solscan transaction, and the top pill shows the latest payout.
 
-| Payouts | Amount |
-|---|---|
-| 1–30 | $3 → $5 |
-| 31–60 | $6 → $10 |
-| 61–90 | $10 → $15 |
-| 91–120 | $15 → $20 |
-| 121–150 | $20 → $30 |
-| 151+ | $30 → $40 (max) |
+By default, amounts rise from $5 to $30 across the first 30 payouts, then stay at about $30.
 
-Amounts never decrease. Each post, wallet and X account can be rewarded once (`MAX_PAYOUTS_PER_ACCOUNT`).
+These are the defaults. Set `PAYOUT_FIXED_USD` to pay everyone the same amount, or change `PAYOUT_TIERS` / `PAYOUT_TIER_SIZE` (see `.env.example`). Amounts never decrease. Each post, wallet and X account can be rewarded once (`MAX_PAYOUTS_PER_ACCOUNT`).
 
 ## Safety
 

@@ -5,12 +5,12 @@ import { Rejection } from './verify.mjs';
 import { lamportsFor } from './payout.mjs';
 
 export const PAGE_SIZE = 25;
-// Payout tiers in cents. Every TIER_SIZE payouts move up one tier; the last tier is the maximum.
-export const TIERS = [[300,500],[600,1000],[1000,1500],[1500,2000],[2000,3000],[3000,4000]], TIER_SIZE = 30;
+// Default payout tiers in cents. Every TIER_SIZE payouts move up one tier; the last tier is the maximum.
+export const TIERS = [[500,3000]], TIER_SIZE = 30;
 // Each payout gets a random amount from its slice of the tier, never below the previous one, so amounts only ascend.
-export function payoutCents(position, previous = 0, random = randomInt) {
-  const tier = Math.min(TIERS.length - 1, Math.floor(position / TIER_SIZE)), [low, high] = TIERS[tier];
-  const step = Math.min(TIER_SIZE - 1, position - tier * TIER_SIZE), size = (high - low) / TIER_SIZE;
+export function payoutCents(position, previous = 0, random = randomInt, tiers = TIERS, tierSize = TIER_SIZE) {
+  const tier = Math.min(tiers.length - 1, Math.floor(position / tierSize)), [low, high] = tiers[tier];
+  const step = Math.min(tierSize - 1, position - tier * tierSize), size = (high - low) / tierSize;
   const amount = random(Math.floor(low + size * step), Math.floor(low + size * (step + 1)) + 1);
   return Math.min(high, Math.max(previous, amount));
 }
@@ -31,7 +31,7 @@ const SCHEMA = [
 ];
 
 // status: queued → sending → sent (or failed). Rejected posts are never stored.
-export async function createStore({ url, authToken, verify, payer = null, price, cluster = 'mainnet', payoutsEnabled = false, payoutIntervalMs = 10000, dailyCapCents = 10000, maxPerAccount = 1, clock = Date.now, log = console }) {
+export async function createStore({ url, authToken, verify, payer = null, price, cluster = 'mainnet', payoutsEnabled = false, payoutIntervalMs = 10000, dailyCapCents = 10000, maxPerAccount = 1, fixedCents = 0, tiers = TIERS, tierSize = TIER_SIZE, clock = Date.now, log = console }) {
   const db = createClient({ url, authToken });
   await db.batch(SCHEMA, 'write');
   const one = async (sql, args = []) => (await db.execute({ sql, args })).rows[0];
@@ -106,7 +106,7 @@ export async function createStore({ url, authToken, verify, payer = null, price,
       let cents = next.amount_cents;
       if (cents === null) {
         const history = await one('SELECT count(*) AS n, coalesce(max(amount_cents),0) AS top FROM submissions WHERE amount_cents IS NOT NULL');
-        cents = payoutCents(history.n, history.top);
+        cents = fixedCents || payoutCents(history.n, history.top, randomInt, tiers, tierSize);
       }
       const spent = (await one("SELECT coalesce(sum(amount_cents),0) AS cents FROM submissions WHERE status IN ('sending','sent') AND coalesce(paid_at,created_at)>?", [now - 86400000])).cents;
       if (spent + cents > dailyCapCents) { log.warn?.('Daily payout cap reached; payouts paused.'); return; }

@@ -33,13 +33,13 @@ async function makeStore(options = {}) {
   return store;
 }
 
-test('payouts start at $3–5, climb through tiers, never decrease and cap at $40', () => {
+test('payouts climb from $5 to $30 and never decrease', () => {
   let previous = 0;
   for (let position = 0; position < TIERS.length * TIER_SIZE + 50; position++) {
     const cents = payoutCents(position, previous), [low, high] = TIERS[Math.min(TIERS.length - 1, Math.floor(position / TIER_SIZE))];
     assert.ok(cents >= low && cents <= high && cents >= previous, `position ${position}: ${cents}`); previous = cents;
   }
-  assert.ok(payoutCents(0) <= 500 && previous <= 4000);
+  assert.ok(payoutCents(0) >= 500 && payoutCents(0) <= 600 && previous <= 3000 && previous >= 2900);
 });
 
 test('approved posts are queued, paid automatically in SOL, and amounts ascend', async () => {
@@ -52,7 +52,7 @@ test('approved posts are queued, paid automatically in SOL, and amounts ascend',
     assert.ok(state.records.every(record => record.status === 'sent' && record.signature));
     const amounts = [...state.records].reverse().map(record => record.amountCents);
     assert.deepEqual(amounts, [...amounts].sort((a, b) => a - b));
-    assert.ok(amounts[0] >= 300 && amounts[0] <= 500);
+    assert.ok(amounts[0] >= 500 && amounts[0] <= 600);
     assert.equal(payer.sent[0].lamports, Math.round(amounts[0] / 100 / 200 * 1e9));
     assert.equal(state.latestPayout.id, state.records.find(record => record.signature === payer.sent[4].signature).id);
     assert.equal(state.paidCount, 5);
@@ -152,4 +152,19 @@ test('API validates input, rejects cross-site writes and limits submissions per 
     const image = await fetch(base + '/assets/gp-monogram.png'); assert.equal(image.headers.get('content-type'), 'image/png'); await image.arrayBuffer();
     assert.equal((await fetch(base + '/../data/get-paid.db')).status, 404);
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); store.close(); }
+});
+
+test('payout amounts can be fixed or custom tiers from the environment', async () => {
+  const { payoutAmounts } = await import('../app.mjs');
+  assert.deepEqual(payoutAmounts({ PAYOUT_FIXED_USD: '2.50' }), { fixedCents: 250 });
+  assert.deepEqual(payoutAmounts({}), { tiers: TIERS, tierSize: TIER_SIZE });
+  assert.deepEqual(payoutAmounts({ PAYOUT_TIERS: '1-2, $5, 10-20', PAYOUT_TIER_SIZE: '10' }), { tiers: [[100, 200], [500, 500], [1000, 2000]], tierSize: 10 });
+  assert.throws(() => payoutAmounts({ PAYOUT_TIERS: '5-3' }), /invalid range/);
+  assert.throws(() => payoutAmounts({ PAYOUT_FIXED_USD: 'abc' }), /positive number/);
+  const payer = fakePayer(), store = await makeStore({ payer, fixedCents: 250 });
+  try {
+    for (let i = 0; i < 3; i++) await store.submit(post(i), wallets[i]);
+    for (let i = 0; i < 3; i++) await store.processPayouts();
+    assert.deepEqual((await store.state()).records.map(record => record.amountCents), [250, 250, 250]);
+  } finally { store.close(); }
 });
