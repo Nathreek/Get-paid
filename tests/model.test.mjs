@@ -23,7 +23,7 @@ test('saved pending deadlines survive reload; untrusted corrupted entries are ex
   assert.deepEqual(readRecords(storage,24000),[good]);
   assert.throws(()=>readRecords({getItem:()=>'{bad'}));
 });
-test('local name adapter provides mapped and fallback names',async()=>{
-  assert.equal(await resolveDisplayName('sam_builds'),'Sam Parker');
+test('display names are derived from the handle',async()=>{
+  assert.equal(await resolveDisplayName('sam_builds'),'Sam Builds');
   assert.equal(await resolveDisplayName('jane_doe'),'Jane Doe');
 });

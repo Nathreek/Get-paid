@@ -28,7 +28,7 @@ function render(force=false){
     const avatar=element('span',`avatar${visible?'':' pending'}`,visible?record.displayName.split(' ').map(word=>word[0]).slice(0,2).join('').toUpperCase():'◷');avatar.setAttribute('aria-hidden','true');
     const info=element('div','profile-info');info.append(element('span','profile-name',visible?record.displayName:'A name is on its way…'));
     const sub=element('div','profile-subline');sub.append(element('span','',`@${record.handle}`));
-    if(visible){const link=element('a','','View post ↗');link.href=record.post;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label',`View post from @${record.handle} (opens in a new tab)`);sub.append(link,element('span','local-badge','Local name'));}
+    if(visible){const link=element('a','','View post ↗');link.href=record.post;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label',`View post from @${record.handle} (opens in a new tab)`);sub.append(link);}
     else sub.append(element('span','local-badge','Queued'));info.append(sub);
     if(!visible){const track=element('div','progress-track');track.setAttribute('role','progressbar');track.setAttribute('aria-label',`Queue progress for @${record.handle}`);track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.append(element('div','progress-fill'));info.append(track);}
     const end=element('div','row-end'),badge=element('span',`reveal-state status-${state}`,visible?(state==='sent'?'Sent':'Pending'):'');

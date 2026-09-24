@@ -3,7 +3,6 @@ import { randomUUID, randomInt } from 'node:crypto';
 import { normalizeHandle, normalizePost } from './dist/model.js';
 import { resolveDisplayName } from './dist/profiles.js';
 export const PAGE_SIZE=25;
-const samples=['Maya Chen','Alex Rivera','Jordan Lee','Sam Parker','Avery Brooks','Riley Morgan','Taylor Quinn','Casey Hayes','Jamie Ellis','Morgan Blake','Charlie Lane'];
 export function createStore(filename,{clock=Date.now,delay=()=>randomInt(5000,25001),rotationDelay=()=>randomInt(6000,12001)}={}){
   const db=new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;
@@ -27,7 +26,6 @@ export function createStore(filename,{clock=Date.now,delay=()=>randomInt(5000,25
     oldest:db.prepare('SELECT * FROM submissions WHERE ready_at<=? ORDER BY shown_at,id LIMIT 1'),
     shown:db.prepare('UPDATE submissions SET shown_at=? WHERE id=?'),
     sent:db.prepare('UPDATE submissions SET sent_at=? WHERE id=? AND sent_at IS NULL AND ready_at<=?'),
-    waitingNames:db.prepare('SELECT display_name FROM submissions WHERE ready_at>?'),
   };
   const record=(row,owner)=>({id:row.id,handle:row.handle,post:row.post,displayName:row.display_name,createdAt:row.created_at,revealAt:row.reveal_at,readyAt:row.ready_at,...(row.sent_at===null?{}:{sentAt:row.sent_at}),canDelete:row.owner===owner});
   function spotlight(){
@@ -38,11 +36,7 @@ export function createStore(filename,{clock=Date.now,delay=()=>randomInt(5000,25
     let next=sql.unseen.get(now);
     if(!next&&!current?.recordId)next=sql.oldest.get(now);
     if(next){sql.shown.run(now,next.id);current={name:next.display_name,recordId:next.id,changedAt:now,nextAt:now+rotationDelay()};}
-    else{
-      const waiting=new Set(sql.waitingNames.all(now).map(row=>row.display_name));
-      const pool=samples.filter(name=>name!==current?.name&&!waiting.has(name));
-      current={name:pool.length?pool[randomInt(pool.length)]:'Your name could be next',recordId:null,changedAt:now,nextAt:now+rotationDelay()};
-    }
+    else current={name:'Your name could be next',recordId:null,changedAt:now,nextAt:now+rotationDelay()};
     sql.setMeta.run('spotlight',JSON.stringify(current));return current;
   }
   return {
