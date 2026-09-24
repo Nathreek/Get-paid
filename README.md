@@ -1,4 +1,4 @@
-# GET-PAID.XYZ
+# GET-PAID
 
 People post about the coin on X, submit the post link and their Solana wallet, and are paid in SOL automatically once a bot approves the post.
 
