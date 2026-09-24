@@ -1,25 +1,34 @@
-export const STORAGE_KEY = 'route.submissions.v1';
-export function normalizeHandle(value) {
-  const handle = String(value).trim().replace(/^@/, '');
-  if (!handle) throw new Error('Enter your X handle, for example your_name.');
-  if (handle.length > 15) throw new Error('An X handle can contain at most 15 characters.');
-  const invalid = [...new Set(handle.match(/[^A-Za-z0-9_]/g) || [])];
-  if (invalid.length) throw new Error(`Remove ${invalid.map(char => char === ' ' ? 'spaces' : `“${char}”`).join(', ')} from your X handle. Only letters, numbers, and underscores are allowed.`);
-  return handle.toLowerCase();
-}
+// Shared by the browser and the server.
+const invalid = message => Object.assign(new Error(message), { status: 400 });
 export function normalizePost(value) {
   let url;
-  try { url = new URL(String(value).trim()); } catch { throw new Error('Paste a complete X or Twitter post URL.'); }
-  if (url.protocol !== 'https:' || !['x.com','www.x.com','twitter.com','www.twitter.com'].includes(url.hostname) || url.username || url.password || url.port || !/^\/[A-Za-z0-9_]{1,15}\/status\/\d+\/?$/.test(url.pathname)) {
-    throw new Error('Use a link like https://x.com/handle/status/12345.');
+  try { url = new URL(String(value).trim()); } catch { throw invalid('Paste a complete X or Twitter post URL.'); }
+  if (url.protocol !== 'https:' || !['x.com','www.x.com','twitter.com','www.twitter.com','mobile.twitter.com','mobile.x.com'].includes(url.hostname) || url.username || url.password || url.port || !/^\/[A-Za-z0-9_]{1,15}\/status\/\d{1,25}\/?$/.test(url.pathname)) {
+    throw invalid('Use a link like https://x.com/handle/status/12345.');
   }
   return `https://x.com${url.pathname.replace(/\/$/, '')}`;
 }
-export function randomDelay(min, max, random = Math.random) { return Math.floor(random() * (max - min + 1)) + min; }
-export function readRecords(storage, now = Date.now()) {
-  const raw = JSON.parse(storage.getItem(STORAGE_KEY) || '[]');
-  if (!Array.isArray(raw)) throw new Error('Invalid saved list');
-  return raw.filter(r => {
-    try { return typeof r.id === 'string' && r.id.length < 80 && normalizeHandle(r.handle) === r.handle && normalizePost(r.post) === r.post && typeof r.displayName === 'string' && r.displayName.length > 0 && r.displayName.length <= 80 && Number.isFinite(r.createdAt) && r.createdAt <= now && Number.isFinite(r.revealAt) && r.revealAt >= r.createdAt && r.revealAt - r.createdAt <= 25000; } catch { return false; }
-  });
+export const tweetIdOf = post => normalizePost(post).split('/').at(-1);
+
+const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58Length(value) {
+  let bytes = [];
+  for (const char of value) {
+    let carry = BASE58.indexOf(char);
+    if (carry < 0) return -1;
+    for (let i = 0; i < bytes.length; i++) { carry += bytes[i] * 58; bytes[i] = carry & 255; carry >>= 8; }
+    while (carry) { bytes.push(carry & 255); carry >>= 8; }
+  }
+  for (const char of value) { if (char !== '1') break; bytes.push(0); }
+  return bytes.length;
 }
+export function normalizeWallet(value) {
+  const wallet = String(value).trim();
+  if (!wallet) throw invalid('Enter your Solana wallet address.');
+  const bad = [...new Set(wallet.match(/[^1-9A-HJ-NP-Za-km-z]/g) || [])];
+  if (bad.length) throw invalid(`Remove ${bad.map(char => char === ' ' ? 'spaces' : `“${char}”`).join(', ')} — a Solana address only uses letters and numbers (no 0, O, I or l).`);
+  if (wallet.length < 32 || wallet.length > 44 || base58Length(wallet) !== 32) throw invalid('That is not a valid Solana wallet address.');
+  return wallet;
+}
+export const shortWallet = wallet => `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
+export const formatUsd = cents => `$${(cents / 100).toFixed(2)}`;

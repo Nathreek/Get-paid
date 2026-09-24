@@ -1,16 +1,14 @@
 import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-import { mkdir } from 'node:fs/promises';
-import { createStore } from '../store.mjs';
+import { waitUntil } from '@vercel/functions';
+import { createAppStore } from '../app.mjs';
 import { createAppServer } from '../http-server.mjs';
 
-const database = path.join('/tmp', 'get-paid', 'submissions.sqlite');
-await mkdir(path.dirname(database), { recursive: true });
-const store = createStore(database);
+const store = await createAppStore();
 const server = createAppServer({
   directory: fileURLToPath(new URL('../dist/', import.meta.url)),
   store,
-  secureCookies: true,
+  trustProxy: true,
+  background: waitUntil,
 });
 
 export default function handler(request, response) {

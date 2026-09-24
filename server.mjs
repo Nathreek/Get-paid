@@ -1,16 +1,13 @@
-import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { createStore } from './store.mjs';
+import { createAppStore, loadLocalEnv } from './app.mjs';
 import { createAppServer } from './http-server.mjs';
-const defaultDatabasePath=process.env.VERCEL?path.join(tmpdir(),'get-paid','submissions.sqlite'):fileURLToPath(new URL('./data/submissions.sqlite',import.meta.url));
-const database=path.resolve(process.env.DB_PATH||defaultDatabasePath);
-await mkdir(path.dirname(database),{recursive:true});
-const store=createStore(database);
-const server=createAppServer({directory:fileURLToPath(new URL('./dist/',import.meta.url)),store,secureCookies:process.env.SECURE_COOKIES==='true'});
+loadLocalEnv();
+const store=await createAppStore();
+const server=createAppServer({directory:fileURLToPath(new URL('./dist/',import.meta.url)),store,trustProxy:process.env.TRUST_PROXY==='true'});
 const port=Number(process.env.PORT||4173),host=process.env.HOST||'0.0.0.0';
-server.listen({port,host,backlog:8192},()=>console.log(`GET PAID is running at http://${host}:${port}`));
+server.listen({port,host,backlog:8192},()=>console.log(`GET PAID is running. Open http://localhost:${port} in your browser.`));
+// Keeps payouts moving even when nobody has the page open.
+const timer=setInterval(()=>store.processPayouts(),15000);
 let closing=false;
-function close(){if(closing)return;closing=true;server.close(()=>{store.close();process.exit(0);});setTimeout(()=>server.closeAllConnections(),5000).unref();}
+function close(){if(closing)return;closing=true;clearInterval(timer);server.close(()=>{store.close();process.exit(0);});setTimeout(()=>server.closeAllConnections(),5000).unref();}
 process.on('SIGTERM',close);process.on('SIGINT',close);

@@ -1,8 +1,20 @@
 {
-  "name": "route-dashboard",
+  "name": "get-paid",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": "24.x" },
-  "scripts": { "start": "node server.mjs", "test": "node --test tests/*.test.mjs", "build": "node build.mjs" }
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@solana/web3.js": "^1.99.0",
+    "@vercel/functions": "^3.9.9",
+    "bs58": "^6.0.0"
+  }
 }

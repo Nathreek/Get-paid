@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="A local dashboard for X post submissions, randomized profile reveals, and community connections.">
-  <title>GET-PAID.XYZ — Route fees through X money</title>
+  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="Post about the coin on X, submit your Solana wallet, and get paid in SOL automatically.">
+  <title>GET-PAID.XYZ — Shill. Get paid in SOL.</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='white'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='bold' letter-spacing='-2' fill='black'%3EGP%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css"><script type="module" src="client.js"></script>
 </head>
@@ -23,46 +23,57 @@
     <div class="contract"><span class="network-dot"></span><span class="contract-label">CA:</span><code id="coin-address">Your coin address here</code><span class="contract-tag" id="contract-tag">Coming soon</span><button id="copy-address" class="icon-button" aria-label="Copy coin address" hidden>⧉</button></div>
     <main id="main">
       <section class="intro" aria-labelledby="headline">
-        <div class="spotlight-strip" role="group" aria-label="Featured names">
-          <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong id="featured-amount" hidden></strong><span id="featured-label">Next up</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">Y</span><strong id="featured-name">Your name could be next</strong></div>
+        <div class="spotlight-strip" role="group" aria-label="Latest payout">
+          <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong id="featured-amount" hidden></strong><span id="featured-label">Next up</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">Y</span><strong id="featured-name">Your wallet could be next</strong></div>
         </div>
-        <h1 id="headline">Route fees through <span>X money</span></h1>
-        <p>A post, a handle, and your next payout.</p>
+        <h1 id="headline">Shill the coin. <span>Get paid in SOL.</span></h1>
+        <p>A post, a wallet, and an automatic payout.</p>
       </section>
       <div class="workspace">
         <section class="panel submit-panel" aria-labelledby="submit-title">
           <div class="panel-heading"><span class="eyebrow"><span class="small-symbol" aria-hidden="true">↗</span> MAKE A CONNECTION</span><span class="muted x-mark" aria-hidden="true">𝕏</span></div>
-          <h2 id="submit-title">Put your handle in the mix.</h2>
-          <p class="description">Share your post. Your name appears when the timer is up.</p>
+          <h2 id="submit-title">Post it. Paste it. Get paid.</h2>
+          <p class="description">Our bot checks that your post mentions <span class="ticker">the coin</span> and promotes it. Approved posts are paid in SOL, straight to your wallet.</p>
           <form id="submission-form" novalidate>
             <label for="post-url">Twitter / X post URL</label>
             <div class="input-wrap"><span aria-hidden="true">↗</span><input id="post-url" name="post" type="url" placeholder="https://x.com/you/status/…" autocomplete="url" maxlength="2048" required aria-describedby="post-error"></div>
             <p class="field-error" id="post-error"></p>
-            <label for="x-handle">Your X handle</label>
-            <div class="input-wrap"><span aria-hidden="true">@</span><input id="x-handle" name="handle" placeholder="yourhandle" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="16" required aria-describedby="handle-help handle-error"></div>
-            <p class="input-help" id="handle-help">Your @username, not your display name. Letters, numbers, and underscores only.</p>
-            <p class="field-error" id="handle-error"></p>
-            <button class="primary-button" type="submit" id="submit-button">Add to the queue <span aria-hidden="true">↗</span></button>
+            <label for="wallet">Your Solana wallet address</label>
+            <div class="input-wrap"><span aria-hidden="true">◎</span><input id="wallet" name="wallet" placeholder="Paste your wallet address" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="44" required aria-describedby="wallet-help wallet-error"></div>
+            <p class="input-help" id="wallet-help">Where your SOL is sent. Double-check it — payments cannot be reversed.</p>
+            <p class="field-error" id="wallet-error"></p>
+            <button class="primary-button" type="submit" id="submit-button">Check my post <span aria-hidden="true">↗</span></button>
             <p class="form-error" id="form-error" role="alert"></p>
           </form>
         </section>
         <section class="panel reveals-panel" aria-labelledby="reveals-title">
           <div class="panel-heading"><h2 id="reveals-title">The reveal room<span class="count-badge" id="total-badge">0</span></h2></div>
-          <p class="description">The shared queue. A new name, a new connection.</p>
+          <p class="description">Every approved post and its payout. <span id="paid-summary"></span></p>
           <p id="connection-status" class="connection-status" role="status" hidden></p>
           <div id="reveal-list" class="reveal-list"></div>
           <nav class="list-pagination" id="list-pagination" aria-label="Submission pages" hidden><button type="button" id="previous-page" aria-label="Previous submissions">←</button><span id="page-summary" aria-live="polite"></span><button type="button" id="next-page" aria-label="Next submissions">→</button></nav>
-          <div class="empty-state" id="empty-state"><div class="orbit-art" aria-hidden="true"><span class="orbit-dot one"></span><span class="orbit-dot two"></span><div class="orbit-center">@</div></div><h3>Every connection starts somewhere.</h3><p>Add your post and handle.<br>Your name could be next.</p></div>
+          <div class="empty-state" id="empty-state"><div class="orbit-art" aria-hidden="true"><span class="orbit-dot one"></span><span class="orbit-dot two"></span><div class="orbit-center">◎</div></div><h3>No payouts yet.</h3><p>Add your post and wallet.<br>Yours could be first.</p></div>
         </section>
       </div>
       <section class="how-it-works" aria-labelledby="how-title">
-        <div class="how-heading"><div><span class="eyebrow">FROM POST TO PAYOUT</span><h2 id="how-title">How it works</h2></div><span class="workflow-tag">Planned payment flow</span></div>
+        <div class="how-heading"><div><span class="eyebrow">FROM POST TO PAYOUT</span><h2 id="how-title">How it works</h2></div><span class="workflow-tag">Automatic payouts</span></div>
         <ol class="steps">
-          <li><span class="step-number">01</span><h3>Buy the coin</h3><p>Use the Buy button to purchase the coin and get started.</p></li>
-          <li><span class="step-number">02</span><h3>Spread the word on X</h3><p>Publish a post about the coin on X (Twitter), then copy the link to your post.</p></li>
-          <li><span class="step-number">03</span><h3>Submit your post</h3><p>Paste your post link into the box above and enter your X handle so we know who to reward.</p></li>
-          <li><span class="step-number">04</span><h3>Get verified and paid</h3><p>Our bot checks your post. Once approved, your reward is sent through X Money using $PAID technology.</p></li>
+          <li><span class="step-number">01</span><h3>Post about <span class="ticker">the coin</span> on X</h3><p>Write a public post that mentions <span class="ticker">the coin</span> and shows some love for it. Copy the link to your post.</p></li>
+          <li><span class="step-number">02</span><h3>Submit your post and wallet</h3><p>Paste the link above along with the Solana wallet address you want to be paid to.</p></li>
+          <li><span class="step-number">03</span><h3>Our bot checks it</h3><p>It reads your post, confirms it mentions <span class="ticker">the coin</span>, and uses AI to check that it promotes the coin positively.</p></li>
+          <li><span class="step-number">04</span><h3>Get paid in SOL</h3><p>Approved posts are paid automatically, straight to your wallet. Every payment links to its on-chain transaction.</p></li>
         </ol>
+      </section>
+      <section class="examples" aria-labelledby="examples-title">
+        <div class="how-heading"><div><span class="eyebrow">BEFORE YOU POST</span><h2 id="examples-title">What gets approved</h2></div><span class="workflow-tag">Checked by AI</span></div>
+        <p class="description">Your post must be public, mention <span class="ticker">$TICKER</span>, and talk it up. Write it in your own words. These are just examples.</p>
+        <div class="example-columns">
+          <ul class="example-list" aria-label="Posts that get approved">
+            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">Just loaded up more <span class="ticker">$TICKER</span> 🚀 This community is different, early and building. You can sleep on it.</p><p class="example-why">Mentions the ticker and hypes the coin.</p></div></li>
+            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">Been holding <span class="ticker">$TICKER</span> for a week and loving it. Chart looks strong, team keeps shipping. LFG 🔥</p><p class="example-why">Shares real excitement about the coin.</p></div></li>
+            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">If you're looking for the next one, check out <span class="ticker">$TICKER</span>. Fun, active community and still early 👀</p><p class="example-why">Recommends the coin to others.</p></div></li>
+          </ul>
+        </div>
       </section>
     </main>
     <footer><span class="footer-brand">GET-PAID.XYZ</span></footer>

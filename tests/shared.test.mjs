@@ -8,68 +8,148 @@ import { unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createStore, payoutCents, TIERS, TIER_SIZE } from '../store.mjs';
 import { createAppServer } from '../http-server.mjs';
-import { normalizeHandle, readRecords } from '../dist/model.js';
-test('punctuation explains the actual validation problem',()=>{
-  assert.throws(()=>normalizeHandle('RTTWE!'),/Remove “!”/);
-  assert.equal(normalizeHandle('RTTWE'),'rttwe');
-});
-test('legacy import reader preserves 5,000 valid browser entries without truncation',()=>{
-  const rows=Array.from({length:5000},(_,i)=>({id:`entry-${i}`,handle:`person${i}`,post:`https://x.com/person${i}/status/${i+1}`,displayName:`Person ${i}`,createdAt:1000,revealAt:20000}));
-  assert.equal(readRecords({getItem:()=>JSON.stringify(rows)},25000).length,5000);
-});
-test('shared pagination, ownership, 60-second gate and actual top acknowledgement',async()=>{
-  let time=100000;const store=createStore(':memory:',{clock:()=>time,delay:()=>5000,rotationDelay:()=>6000});
-  try{
-    const row=await store.add('owner-a','https://x.com/alpha/status/123','alpha');
-    for(let i=0;i<30;i++)await store.add('owner-b',`https://x.com/person${i}/status/${i+1}`,`person${i}`);
-    const state=store.state('owner-a');assert.equal(state.total,31);assert.equal(state.records.length,25);assert.equal(store.state('owner-a',1).records.length,6);
-    assert.equal(store.remove('owner-b',row.id),false);
-    time=164999;assert.equal(store.acknowledge(row.id),false);assert.equal(store.state('owner-a').spotlight.recordId,null);
-    time=171000;let shown=store.state('owner-a').spotlight;assert.ok(shown.recordId);assert.equal(store.acknowledge(shown.recordId),true);
-    const records=[...store.state('owner-a').records,...store.state('owner-a',1).records];assert.ok(records.find(record=>record.id===shown.recordId).sentAt>=165000);
-    await assert.rejects(()=>store.add('another','https://x.com/alpha/status/123','ALPHA'),/already/);
-  }finally{store.close();}
-});
-test('database survives close and reopen',async()=>{
-  const file=path.join(tmpdir(),`get-paid-test-${randomUUID()}.sqlite`);
-  let store=createStore(file);await store.add('owner','https://x.com/persist/status/123','persist');store.close();
-  store=createStore(file);assert.equal(store.state('owner').total,1);store.close();
-  for(const suffix of ['','-wal','-shm'])await unlink(file+suffix).catch(()=>{});
-});
-test('visitors share entries; API rejects cross-site writes, limits abuse, and protects deletion',async()=>{
-  const store=createStore(':memory:');const server=createAppServer({directory:fileURLToPath(new URL('../dist/',import.meta.url)),store,rateLimit:3});server.listen(0,'127.0.0.1');await once(server,'listening');
-  const base=`http://127.0.0.1:${server.address().port}`;
-  try{
-    const a=await fetch(base+'/api/state'),cookie=a.headers.get('set-cookie').split(';')[0];await a.json();
-    const headers={'Content-Type':'application/json',Origin:base,Cookie:cookie};
-    const create=await fetch(base+'/api/submissions',{method:'POST',headers,body:JSON.stringify({post:'https://x.com/valid/status/123',handle:'valid'})});assert.equal(create.status,201);const {record}=await create.json();
-    const other=await fetch(base+'/api/state');const otherCookie=other.headers.get('set-cookie').split(';')[0];const shared=await other.json();assert.equal(shared.total,1);assert.equal(shared.records[0].canDelete,false);
-    assert.equal((await fetch(base+`/api/submissions/${record.id}`,{method:'DELETE',headers:{...headers,Cookie:otherCookie}})).status,404);
-    assert.equal((await fetch(base+'/api/submissions',{method:'POST',headers:{...headers,Origin:'https://unrelated.example'},body:'{}'})).status,403);
-    const invalid=await fetch(base+'/api/submissions',{method:'POST',headers,body:JSON.stringify({post:'https://x.com/valid/status/123',handle:'RTTWE!'})});assert.equal(invalid.status,400);assert.match((await invalid.json()).error,/Remove “!”/);
-    await fetch(base+'/api/submissions',{method:'POST',headers,body:'{}'});
-    assert.equal((await fetch(base+'/api/submissions',{method:'POST',headers,body:'{}'})).status,429);
-    const css=await fetch(base+'/styles.css'),tag=css.headers.get('etag');assert.equal(css.status,200);await css.text();assert.equal((await fetch(base+'/styles.css',{headers:{'If-None-Match':tag}})).status,304);
-    const image=await fetch(base+'/assets/gp-monogram.png');assert.equal(image.headers.get('content-type'),'image/png');await image.arrayBuffer();
-    assert.equal((await fetch(base+'/data/submissions.sqlite')).status,404);
-  }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));store.close();}
-});
-test('payouts start at $3–5, climb through tiers, never decrease and cap at $40',()=>{
-  let previous=0;
-  for(let position=0;position<TIERS.length*TIER_SIZE+50;position++){
-    const cents=payoutCents(position,previous),[low,high]=TIERS[Math.min(TIERS.length-1,Math.floor(position/TIER_SIZE))];
-    assert.ok(cents>=low&&cents<=high&&cents>=previous,`position ${position}: ${cents}`);previous=cents;
+
+const wallets = ['7CVZZLWaerL6b42Bo5kkpKnEEGXYf8MLAUVAiNLymqiv', '11111111111111111111111111111111', 'So11111111111111111111111111111111111111112', 'Vote111111111111111111111111111111111111111', 'Stake11111111111111111111111111111111111111'];
+const post = i => `https://x.com/user${i}/status/${1790000000000000000n + BigInt(i)}`;
+const verify = async value => ({ tweetId: value.split('/').at(-1), author: value.split('/')[3].toLowerCase(), text: '$PAID 🚀' });
+const quiet = { warn() {}, error() {} };
+
+// A fake payer: records transfers; outcome() decides what each send does.
+function fakePayer(outcome = () => 'confirmed') {
+  const sent = [];
+  return {
+    sent, balance: 1e12, statuses: new Map(),
+    async canAfford(lamports) { return this.balance >= lamports; },
+    async prepare(to, lamports) {
+      const signature = `sig${sent.length}-${randomUUID()}`;
+      return { signature, lastValidBlockHeight: 100, send: async () => { const result = outcome(signature); if (result instanceof Error) throw result; sent.push({ to, lamports, signature }); return result; } };
+    },
+    async status(signature) { return this.statuses.get(signature) || 'pending'; },
+  };
+}
+async function makeStore(options = {}) {
+  let time = 1_000_000;
+  const store = await createStore({ url: ':memory:', verify, price: async () => 200, payoutsEnabled: true, payoutIntervalMs: 0, clock: () => time++, log: quiet, ...options });
+  return store;
+}
+
+test('payouts start at $3–5, climb through tiers, never decrease and cap at $40', () => {
+  let previous = 0;
+  for (let position = 0; position < TIERS.length * TIER_SIZE + 50; position++) {
+    const cents = payoutCents(position, previous), [low, high] = TIERS[Math.min(TIERS.length - 1, Math.floor(position / TIER_SIZE))];
+    assert.ok(cents >= low && cents <= high && cents >= previous, `position ${position}: ${cents}`); previous = cents;
   }
-  assert.ok(payoutCents(0)<=500);assert.equal(previous<=4000,true);
+  assert.ok(payoutCents(0) <= 500 && previous <= 4000);
 });
-test('featured names keep their assigned payout',async()=>{
-  let time=100000;const store=createStore(':memory:',{clock:()=>time,delay:()=>5000,rotationDelay:()=>6000});
-  try{
-    await store.add('owner','https://x.com/first/status/1','first');await store.add('owner','https://x.com/second/status/2','second');
-    time=166000;const one=store.state('owner').spotlight;assert.ok(one.amountCents>=300&&one.amountCents<=500);
-    time=173000;const two=store.state('owner').spotlight;assert.notEqual(two.recordId,one.recordId);assert.ok(two.amountCents>=one.amountCents);
-    time=180000;assert.equal(store.state('owner').spotlight.amountCents,undefined);
-    time=187000;const again=store.state('owner').spotlight;assert.equal(again.amountCents,again.recordId===one.recordId?one.amountCents:two.amountCents);
-    assert.equal(store.state('owner').records.find(record=>record.id===one.recordId).amountCents,one.amountCents);
-  }finally{store.close();}
+
+test('approved posts are queued, paid automatically in SOL, and amounts ascend', async () => {
+  const payer = fakePayer(), store = await makeStore({ payer });
+  try {
+    for (let i = 0; i < 5; i++) assert.equal((await store.submit(post(i), wallets[i])).status, 'queued');
+    for (let i = 0; i < 5; i++) await store.processPayouts();
+    const state = await store.state();
+    assert.equal(payer.sent.length, 5);
+    assert.ok(state.records.every(record => record.status === 'sent' && record.signature));
+    const amounts = [...state.records].reverse().map(record => record.amountCents);
+    assert.deepEqual(amounts, [...amounts].sort((a, b) => a - b));
+    assert.ok(amounts[0] >= 300 && amounts[0] <= 500);
+    assert.equal(payer.sent[0].lamports, Math.round(amounts[0] / 100 / 200 * 1e9));
+    assert.equal(state.latestPayout.id, state.records.find(record => record.signature === payer.sent[4].signature).id);
+    assert.equal(state.paidCount, 5);
+  } finally { store.close(); }
+});
+
+test('the same post, wallet or X account cannot be rewarded twice', async () => {
+  const store = await makeStore({ payer: fakePayer() });
+  try {
+    await store.submit(post(1), wallets[0]);
+    await assert.rejects(() => store.submit(post(1), wallets[1]), /already been submitted/);
+    await assert.rejects(() => store.submit(post(2), wallets[0]), /wallet has already/);
+    await assert.rejects(() => store.submit('https://x.com/user1/status/42', wallets[2]), /@user1 has already/);
+  } finally { store.close(); }
+});
+
+test('nothing is sent when payouts are disabled, the wallet is short on SOL, or the daily cap is hit', async () => {
+  const payer = fakePayer();
+  let store = await makeStore({ payer, payoutsEnabled: false });
+  await store.submit(post(1), wallets[0]); await store.processPayouts(); assert.equal(payer.sent.length, 0); store.close();
+  store = await makeStore({ payer }); payer.balance = 0;
+  await store.submit(post(1), wallets[0]); await store.processPayouts(); assert.equal(payer.sent.length, 0);
+  assert.equal((await store.state()).records[0].status, 'queued'); store.close();
+  store = await makeStore({ payer: fakePayer(), dailyCapCents: 250 });
+  await store.submit(post(1), wallets[0]); await store.processPayouts(); assert.equal((await store.state()).records[0].status, 'queued'); store.close();
+});
+
+test('an unconfirmed payout is settled from its signature instead of being paid again', async () => {
+  const signatures = [];
+  const payer = fakePayer(signature => { signatures.push(signature); return new Error('confirmation timed out'); });
+  const store = await makeStore({ payer });
+  try {
+    await store.submit(post(1), wallets[0]);
+    await store.processPayouts();
+    assert.equal((await store.state()).records[0].status, 'sending');
+    await store.processPayouts();
+    assert.equal(signatures.length, 1, 'still pending on-chain: must not send again');
+    payer.statuses.set(signatures[0], 'confirmed');
+    await store.processPayouts();
+    const [row] = (await store.state()).records;
+    assert.equal(row.status, 'sent'); assert.equal(row.signature, signatures[0]); assert.equal(signatures.length, 1);
+  } finally { store.close(); }
+});
+
+test('an expired unconfirmed payout returns to the queue with the same amount', async () => {
+  const signatures = [];
+  const payer = fakePayer(signature => { signatures.push(signature); return new Error('timed out'); });
+  const store = await makeStore({ payer });
+  try {
+    await store.submit(post(1), wallets[0]);
+    await store.processPayouts();
+    const amount = (await store.state()).records[0].amountCents;
+    payer.statuses.set(signatures[0], 'expired');
+    await store.processPayouts();
+    assert.equal(signatures.length, 2);
+    assert.equal((await store.state()).records[0].amountCents, amount);
+    payer.statuses.set(signatures[1], 'confirmed');
+    await store.processPayouts();
+    const [row] = (await store.state()).records;
+    assert.equal(row.status, 'sent'); assert.equal(signatures.length, 2);
+  } finally { store.close(); }
+});
+
+test('a transfer the network refuses is retried, then marked not paid after 3 refusals', async () => {
+  const payer = fakePayer(() => Object.assign(new Error('Blockhash not found'), { rejected: true }));
+  const store = await makeStore({ payer });
+  try {
+    await store.submit(post(1), wallets[0]);
+    for (let i = 0; i < 2; i++) { await store.processPayouts(); assert.equal((await store.state()).records[0].status, 'queued'); }
+    await store.processPayouts(); assert.equal((await store.state()).records[0].status, 'failed');
+  } finally { store.close(); }
+});
+
+test('database survives close and reopen', async () => {
+  const file = path.join(tmpdir(), `get-paid-test-${randomUUID()}.db`);
+  let store = await makeStore({ url: 'file:' + file });
+  await store.submit(post(1), wallets[0]); store.close();
+  store = await makeStore({ url: 'file:' + file }); assert.equal((await store.state()).total, 1); store.close();
+  for (const suffix of ['', '-wal', '-shm']) await unlink(file + suffix).catch(() => {});
+});
+
+test('API validates input, rejects cross-site writes and limits submissions per IP', async () => {
+  const store = await makeStore({ payoutsEnabled: false });
+  const server = createAppServer({ directory: fileURLToPath(new URL('../dist/', import.meta.url)), store, rateLimit: 3 });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const base = `http://127.0.0.1:${server.address().port}`, headers = { 'Content-Type': 'application/json', Origin: base };
+  const submit = (body, extra = {}) => fetch(base + '/api/submissions', { method: 'POST', headers: { ...headers, ...extra }, body: JSON.stringify(body) });
+  try {
+    const created = await submit({ post: post(1), wallet: wallets[0] }); assert.equal(created.status, 201);
+    assert.equal((await created.json()).record.wallet, wallets[0]);
+    const bad = await submit({ post: post(2), wallet: 'not-a-wallet' }); assert.equal(bad.status, 400); assert.match((await bad.json()).error, /Remove/);
+    assert.equal((await submit({ post: post(1), wallet: wallets[1] })).status, 409);
+    assert.equal((await submit({})).status, 429);
+    assert.equal((await submit({}, { Origin: 'https://unrelated.example' })).status, 403);
+    const state = await fetch(base + '/api/state'); assert.equal((await state.json()).total, 1);
+    assert.equal((await fetch(base + '/api/state', { headers: { 'If-None-Match': state.headers.get('etag') } })).status, 304);
+    const image = await fetch(base + '/assets/gp-monogram.png'); assert.equal(image.headers.get('content-type'), 'image/png'); await image.arrayBuffer();
+    assert.equal((await fetch(base + '/../data/get-paid.db')).status, 404);
+  } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); store.close(); }
 });
