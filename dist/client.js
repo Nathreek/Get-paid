@@ -14,6 +14,7 @@ async function request(url,options={}){
   return{response,data};
 }
 const send=(url,data,method='POST')=>request(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+const money=cents=>`$${(cents/100).toFixed(2)}`;
 function status(record){return now()<record.revealAt?'queued':record.sentAt?'sent':'pending';}
 function render(force=false){
   const key=JSON.stringify([snapshot.page,snapshot.total,snapshot.records.map(record=>[record.id,status(record),record.canDelete])]);
@@ -31,7 +32,7 @@ function render(force=false){
     if(visible){const link=element('a','','View post ↗');link.href=record.post;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label',`View post from @${record.handle} (opens in a new tab)`);sub.append(link);}
     else sub.append(element('span','local-badge','Queued'));info.append(sub);
     if(!visible){const track=element('div','progress-track');track.setAttribute('role','progressbar');track.setAttribute('aria-label',`Queue progress for @${record.handle}`);track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.append(element('div','progress-fill'));info.append(track);}
-    const end=element('div','row-end'),badge=element('span',`reveal-state status-${state}`,visible?(state==='sent'?'Sent':'Pending'):'');
+    const end=element('div','row-end'),badge=element('span',`reveal-state status-${state}`,visible?(state==='sent'?(record.amountCents?`Sent ${money(record.amountCents)}`:'Sent'):'Pending'):'');
     if(visible)badge.title=state==='sent'?'Shown in the top box':'Waiting to appear in the top box';end.append(badge);
     if(record.canDelete){const remove=element('button','icon-button','×');remove.type='button';remove.setAttribute('aria-label',`Remove @${record.handle}`);remove.addEventListener('click',async()=>{remove.disabled=true;try{await send(`/api/submissions/${record.id}`,{},'DELETE');etag='';await refresh(true);toast(`@${record.handle} removed.`);}catch(error){remove.disabled=false;toast(error.message);}});end.append(remove);}
     row.append(avatar,info,end);list.append(row);
@@ -49,6 +50,8 @@ function updateTimers(){
 }
 async function feature(item){
   if(!item)return;
+  const amount=item.amountCents?money(item.amountCents):'';
+  $('#featured-amount').textContent=amount;$('#featured-amount').hidden=!amount;$('#featured-label').textContent=amount?'sent to':'Next up';
   if(lastFeatured!==item.name){$('#featured-name').textContent=item.name;$('#featured-avatar').textContent=item.name.split(' ').map(word=>word[0]).slice(0,2).join('');lastFeatured=item.name;}
   if(item.recordId&&!document.hidden&&!acknowledged.has(item.recordId)){
     const id=item.recordId;acknowledged.add(id);

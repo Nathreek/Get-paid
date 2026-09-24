@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { createStore } from '../store.mjs';
+import { createStore, payoutCents, TIERS, TIER_SIZE } from '../store.mjs';
 import { createAppServer } from '../http-server.mjs';
 import { normalizeHandle, readRecords } from '../dist/model.js';
 test('punctuation explains the actual validation problem',()=>{
@@ -53,4 +53,23 @@ test('visitors share entries; API rejects cross-site writes, limits abuse, and p
     const image=await fetch(base+'/assets/gp-monogram.png');assert.equal(image.headers.get('content-type'),'image/png');await image.arrayBuffer();
     assert.equal((await fetch(base+'/data/submissions.sqlite')).status,404);
   }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));store.close();}
+});
+test('payouts start at $3–5, climb through tiers, never decrease and cap at $40',()=>{
+  let previous=0;
+  for(let position=0;position<TIERS.length*TIER_SIZE+50;position++){
+    const cents=payoutCents(position,previous),[low,high]=TIERS[Math.min(TIERS.length-1,Math.floor(position/TIER_SIZE))];
+    assert.ok(cents>=low&&cents<=high&&cents>=previous,`position ${position}: ${cents}`);previous=cents;
+  }
+  assert.ok(payoutCents(0)<=500);assert.equal(previous<=4000,true);
+});
+test('featured names keep their assigned payout',async()=>{
+  let time=100000;const store=createStore(':memory:',{clock:()=>time,delay:()=>5000,rotationDelay:()=>6000});
+  try{
+    await store.add('owner','https://x.com/first/status/1','first');await store.add('owner','https://x.com/second/status/2','second');
+    time=166000;const one=store.state('owner').spotlight;assert.ok(one.amountCents>=300&&one.amountCents<=500);
+    time=173000;const two=store.state('owner').spotlight;assert.notEqual(two.recordId,one.recordId);assert.ok(two.amountCents>=one.amountCents);
+    time=180000;assert.equal(store.state('owner').spotlight.amountCents,undefined);
+    time=187000;const again=store.state('owner').spotlight;assert.equal(again.amountCents,again.recordId===one.recordId?one.amountCents:two.amountCents);
+    assert.equal(store.state('owner').records.find(record=>record.id===one.recordId).amountCents,one.amountCents);
+  }finally{store.close();}
 });
