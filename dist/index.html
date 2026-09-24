@@ -24,10 +24,17 @@
     <main id="main">
       <section class="intro" aria-labelledby="headline">
         <div class="spotlight-strip" role="group" aria-label="Latest payout">
-          <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong id="featured-amount" hidden></strong><span id="featured-label">Next up</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">Y</span><strong id="featured-name">Your wallet could be next</strong></div>
+          <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong id="featured-amount" hidden></strong><span id="featured-label">Next up</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">◎</span><strong id="featured-name">You could be next</strong></div>
         </div>
-        <h1 id="headline">Shill the coin. <span>Get paid in SOL.</span></h1>
-        <p>A post, a wallet, and an automatic payout.</p>
+        <h1 id="headline">Shill the coin.<br><span>Get paid in SOL.</span></h1>
+        <p>Post about <span class="ticker">the coin</span> on X, drop your wallet, and get paid automatically. Every payout is public on Solscan.</p>
+        <div class="hero-actions"><a class="hero-button primary" href="#submit-title">Submit your post <span aria-hidden="true">↗</span></a><a class="hero-button" href="#how-title">How it works</a></div>
+      </section>
+      <section class="stats" aria-label="Payout totals">
+        <div class="stat"><span>Paid out</span><strong id="stat-paid">$0.00</strong><small id="stat-sol">0 SOL</small></div>
+        <div class="stat"><span>Posts paid</span><strong id="stat-posts">0</strong><small>approved and paid</small></div>
+        <div class="stat"><span>Wallets paid</span><strong id="stat-wallets">0</strong><small>unique wallets</small></div>
+        <div class="stat"><span>In queue</span><strong id="stat-queue">0</strong><small>waiting for payout</small></div>
       </section>
       <div class="workspace">
         <section class="panel submit-panel" aria-labelledby="submit-title">
@@ -48,7 +55,7 @@
         </section>
         <section class="panel reveals-panel" aria-labelledby="reveals-title">
           <div class="panel-heading"><h2 id="reveals-title">The reveal room<span class="count-badge" id="total-badge">0</span></h2></div>
-          <p class="description">Every approved post and its payout. <span id="paid-summary"></span></p>
+          <p class="description">Every approved post and its payout, live.</p>
           <p id="connection-status" class="connection-status" role="status" hidden></p>
           <div id="reveal-list" class="reveal-list"></div>
           <nav class="list-pagination" id="list-pagination" aria-label="Submission pages" hidden><button type="button" id="previous-page" aria-label="Previous submissions">←</button><span id="page-summary" aria-live="polite"></span><button type="button" id="next-page" aria-label="Next submissions">→</button></nav>
@@ -57,23 +64,17 @@
       </div>
       <section class="how-it-works" aria-labelledby="how-title">
         <div class="how-heading"><div><span class="eyebrow">FROM POST TO PAYOUT</span><h2 id="how-title">How it works</h2></div><span class="workflow-tag">Automatic payouts</span></div>
-        <ol class="steps">
-          <li><span class="step-number">01</span><h3>Post about <span class="ticker">the coin</span> on X</h3><p>Write a public post that mentions <span class="ticker">the coin</span> and shows some love for it. Copy the link to your post.</p></li>
-          <li><span class="step-number">02</span><h3>Submit your post and wallet</h3><p>Paste the link above along with the Solana wallet address you want to be paid to.</p></li>
-          <li><span class="step-number">03</span><h3>Our bot checks it</h3><p>It reads your post, confirms it mentions <span class="ticker">the coin</span>, and uses AI to check that it promotes the coin positively.</p></li>
-          <li><span class="step-number">04</span><h3>Get paid in SOL</h3><p>Approved posts are paid automatically, straight to your wallet. Every payment links to its on-chain transaction.</p></li>
+        <ol class="steps visual">
+          <li><div class="step-visual" aria-hidden="true"><div class="mini-tweet"><div class="mini-head"><span class="mini-pfp">🐸</span><b>You</b><i>@you · now</i><span class="mini-x">𝕏</span></div><p>Loving <span class="ticker">the coin</span> 🚀 early and building</p><div class="mini-actions"><span></span><span></span><span></span><span></span></div></div></div><span class="step-number">01</span><h3>Post about <span class="ticker">the coin</span> on X</h3><p>Write a public post that mentions <span class="ticker">the coin</span> and shows some love for it. Copy the link to your post.</p></li>
+          <li><div class="step-visual" aria-hidden="true"><div class="mini-form"><div class="mini-field"><span>↗</span>x.com/you/status/18…</div><div class="mini-field"><span>◎</span>7xKX…9fQa</div><div class="mini-button">Check my post ↗</div></div></div><span class="step-number">02</span><h3>Submit your post and wallet</h3><p>Paste the link above along with the Solana wallet address you want to be paid to.</p></li>
+          <li><div class="step-visual" aria-hidden="true"><ul class="mini-checks"><li><span>✓</span>Post is public</li><li><span>✓</span>Mentions <span class="ticker">the coin</span></li><li class="ai"><span>✓</span>Positive vibe<em>AI</em></li></ul></div><span class="step-number">03</span><h3>Our bot checks it</h3><p>It reads your post, confirms it mentions <span class="ticker">the coin</span>, and uses AI to check that it promotes the coin positively.</p></li>
+          <li><div class="step-visual" aria-hidden="true"><div class="mini-payout"><span class="mini-pfp">🐸</span><div><b>You</b><i>just now</i></div><strong>+0.05 SOL</strong></div><div class="mini-solscan">View on Solscan ↗</div></div><span class="step-number">04</span><h3>Get paid in SOL</h3><p>Approved posts are paid automatically, straight to your wallet. Every payment links to its on-chain transaction.</p></li>
         </ol>
       </section>
       <section class="examples" aria-labelledby="examples-title">
         <div class="how-heading"><div><span class="eyebrow">BEFORE YOU POST</span><h2 id="examples-title">What gets approved</h2></div><span class="workflow-tag">Checked by AI</span></div>
         <p class="description">Your post must be public, mention <span class="ticker">$TICKER</span>, and talk it up. Write it in your own words. These are just examples.</p>
-        <div class="example-columns">
-          <ul class="example-list" aria-label="Posts that get approved">
-            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">Just loaded up more <span class="ticker">$TICKER</span> 🚀 This community is different, early and building. You can sleep on it.</p><p class="example-why">Mentions the ticker and hypes the coin.</p></div></li>
-            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">Been holding <span class="ticker">$TICKER</span> for a week and loving it. Chart looks strong, team keeps shipping. LFG 🔥</p><p class="example-why">Shares real excitement about the coin.</p></div></li>
-            <li class="example good"><span class="example-mark" aria-label="Approved">✓</span><div><p class="example-text">If you're looking for the next one, check out <span class="ticker">$TICKER</span>. Fun, active community and still early 👀</p><p class="example-why">Recommends the coin to others.</p></div></li>
-          </ul>
-        </div>
+        <div class="marquee" id="example-marquee" role="region" aria-label="Example posts that get approved"></div>
       </section>
     </main>
     <footer><span class="footer-brand">GET-PAID</span></footer>

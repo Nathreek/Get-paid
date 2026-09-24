@@ -34,8 +34,8 @@ test('ticker must appear as a cashtag or the coin address', () => {
 
 test('tweets are read from oEmbed, with the real author taken from X', async () => {
   const html = '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Huge week for <a href="https://twitter.com/search?q=%24PAID">$PAID</a> &amp; friends 🚀</p>&mdash; Sam (@Sam_Builds) <a href="https://twitter.com/Sam_Builds/status/1">May 1</a></blockquote>';
-  const tweet = await fetchTweet('1', async () => reply({ author_url: 'https://twitter.com/Sam_Builds', html }));
-  assert.deepEqual(tweet, { author: 'sam_builds', text: 'Huge week for $PAID & friends 🚀' });
+  const tweet = await fetchTweet('1', async () => reply({ author_url: 'https://twitter.com/Sam_Builds', author_name: 'Sam', html }));
+  assert.deepEqual(tweet, { author: 'sam_builds', name: 'Sam', avatar: null, text: 'Huge week for $PAID & friends 🚀' });
   await assert.rejects(() => fetchTweet('1', async () => reply(null, 404)), Rejection);
   await assert.rejects(() => fetchTweet('1', async () => { throw new Error('offline'); }), error => error.status === 503);
 });
@@ -58,5 +58,12 @@ test('verifier refuses without a ticker, rejects old or off-topic posts, and app
   await assert.rejects(() => createVerifier({ ticker: '', llm, fetcher: fetcher('$PAID') })(post), /not started/);
   await assert.rejects(() => createVerifier({ ticker: 'PAID', llm, fetcher: fetcher('nice day') })(post), /must mention \$PAID/);
   await assert.rejects(() => createVerifier({ ticker: 'PAID', llm, campaignStart: tweetedAt('1790000000000000000') + 1, fetcher: fetcher('$PAID') })(post), /older than the campaign/);
-  assert.deepEqual(await createVerifier({ ticker: 'PAID', llm, fetcher: fetcher('$PAID to the moon') })(post), { tweetId: '1790000000000000000', author: 'sam', text: '$PAID to the moon' });
+  assert.deepEqual(await createVerifier({ ticker: 'PAID', llm, fetcher: fetcher('$PAID to the moon') })(post), { tweetId: '1790000000000000000', author: 'sam', name: 'sam', avatar: null, text: '$PAID to the moon' });
+});
+
+test('fxtwitter supplies the display name and avatar; only X-hosted avatars are kept', async () => {
+  const fx = avatar => async url => url.includes('fxtwitter') ? reply({ tweet: { text: '$PAID 🚀', author: { screen_name: 'Sam_Builds', name: 'Sam ✨', avatar_url: avatar } } }) : reply(null, 500);
+  assert.deepEqual(await fetchTweet('1', fx('https://pbs.twimg.com/profile_images/123/abc_200x200.jpg')), { author: 'sam_builds', name: 'Sam ✨', avatar: 'https://pbs.twimg.com/profile_images/123/abc_200x200.jpg', text: '$PAID 🚀' });
+  assert.equal((await fetchTweet('1', fx('https://evil.test/x.jpg'))).avatar, null);
+  assert.equal((await fetchTweet('1', fx('javascript:alert(1)'))).avatar, null);
 });

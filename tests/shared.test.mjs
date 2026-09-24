@@ -56,6 +56,10 @@ test('approved posts are queued, paid automatically in SOL, and amounts ascend',
     assert.equal(payer.sent[0].lamports, Math.round(amounts[0] / 100 / 200 * 1e9));
     assert.equal(state.latestPayout.id, state.records.find(record => record.signature === payer.sent[4].signature).id);
     assert.equal(state.paidCount, 5);
+    // The page shows these SOL figures, so they must come through exactly as sent.
+    for (const sent of payer.sent) assert.equal(state.records.find(record => record.signature === sent.signature).lamports, sent.lamports);
+    assert.equal(state.paidLamports, payer.sent.reduce((sum, sent) => sum + sent.lamports, 0));
+    assert.equal(state.walletsPaid, 5);
   } finally { store.close(); }
 });
 

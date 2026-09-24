@@ -34,13 +34,16 @@ const SCHEMA = [
 export async function createStore({ url, authToken, verify, payer = null, price, cluster = 'mainnet', payoutsEnabled = false, payoutIntervalMs = 10000, dailyCapCents = 10000, maxPerAccount = 1, fixedCents = 0, tiers = TIERS, tierSize = TIER_SIZE, clock = Date.now, log = console }) {
   const db = createClient({ url, authToken });
   await db.batch(SCHEMA, 'write');
+  // Columns added after launch; existing databases get them on startup.
+  const columns = new Set((await db.execute('PRAGMA table_info(submissions)')).rows.map(column => column.name));
+  for (const [name, type] of [['author_name', 'TEXT'], ['avatar_url', 'TEXT']]) if (!columns.has(name)) await db.execute(`ALTER TABLE submissions ADD COLUMN ${name} ${type}`);
   const one = async (sql, args = []) => (await db.execute({ sql, args })).rows[0];
   const run = async (sql, args = []) => (await db.execute({ sql, args })).rowsAffected;
   const bump = () => run("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'");
   const record = row => ({
-    id: row.id, post: row.post, author: row.author, wallet: row.wallet, status: row.status, createdAt: row.created_at,
+    id: row.id, post: row.post, author: row.author, name: row.author_name || row.author, avatar: row.avatar_url || null, text: row.tweet_text, wallet: row.wallet, status: row.status, createdAt: row.created_at,
     ...(row.amount_cents === null ? {} : { amountCents: row.amount_cents }),
-    ...(row.status === 'sent' ? { signature: row.signature, paidAt: row.paid_at } : {}),
+    ...(row.status === 'sent' ? { signature: row.signature, paidAt: row.paid_at, lamports: row.lamports } : {}),
   });
   const used = async (column, value) => (await one(`SELECT count(*) AS n FROM submissions WHERE ${column}=? AND status!='failed'`, [value])).n;
 
@@ -52,7 +55,7 @@ export async function createStore({ url, authToken, verify, payer = null, price,
     if (await used('author', tweet.author) >= maxPerAccount) throw new Rejection(`@${tweet.author} has already been rewarded.`);
     const id = randomUUID();
     try {
-      await run("INSERT INTO submissions(id,post,tweet_id,author,wallet,tweet_text,status,created_at) VALUES(?,?,?,?,?,?,'queued',?)", [id, post, tweetId, tweet.author, wallet, tweet.text, clock()]);
+      await run("INSERT INTO submissions(id,post,tweet_id,author,author_name,avatar_url,wallet,tweet_text,status,created_at) VALUES(?,?,?,?,?,?,?,?,'queued',?)", [id, post, tweetId, tweet.author, tweet.name || tweet.author, tweet.avatar || null, wallet, tweet.text, clock()]);
     } catch (error) {
       if (/UNIQUE/i.test(error.message)) throw conflict('That post has already been submitted.');
       throw error;
@@ -66,10 +69,10 @@ export async function createStore({ url, authToken, verify, payer = null, price,
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)), page = Math.min(pages - 1, Math.max(0, requestedPage));
     const rows = (await db.execute({ sql: 'SELECT * FROM submissions ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?', args: [PAGE_SIZE, page * PAGE_SIZE] })).rows;
     const latest = await one("SELECT * FROM submissions WHERE status='sent' ORDER BY paid_at DESC LIMIT 1");
-    const totals = await one("SELECT count(*) AS paid, coalesce(sum(amount_cents),0) AS cents FROM submissions WHERE status='sent'");
+    const totals = await one("SELECT count(*) AS paid, coalesce(sum(amount_cents),0) AS cents, coalesce(sum(lamports),0) AS lamports, count(DISTINCT wallet) AS wallets, (SELECT count(*) FROM submissions WHERE status IN ('queued','sending')) AS queued FROM submissions WHERE status='sent'");
     return {
       serverNow: clock(), total, page, pages, pageSize: PAGE_SIZE, records: rows.map(record),
-      latestPayout: latest ? record(latest) : null, cluster, paidCount: totals.paid, paidCents: totals.cents,
+      latestPayout: latest ? record(latest) : null, cluster, paidCount: totals.paid, paidCents: totals.cents, paidLamports: totals.lamports, walletsPaid: totals.wallets, queued: totals.queued,
       revision: Number((await one("SELECT value FROM metadata WHERE key='revision'")).value),
     };
   }

@@ -18,22 +18,29 @@ async function fetchJson(url, fetcher) {
   return { status: response.status, data: response.ok ? await response.json() : null };
 }
 
-// X's public oEmbed endpoint needs no API key; fxtwitter is the fallback.
+// Only X's own image host is kept, so the page never loads avatars from arbitrary URLs.
+const avatarUrl = value => /^https:\/\/pbs\.twimg\.com\/profile_images\/[\w\-/.]+$/.test(value || '') ? value : null;
+const notFound = () => new Rejection('That post was not found. It may be deleted, private or from a protected account.');
+
+// fxtwitter gives the text plus the author's name and avatar; X's public oEmbed endpoint (no API key) is the fallback.
 export async function fetchTweet(id, fetcher = fetch) {
+  let missing = false;
+  try {
+    const { status, data } = await fetchJson(`https://api.fxtwitter.com/status/${id}`, fetcher);
+    const tweet = data?.tweet, author = tweet?.author;
+    if (author?.screen_name) return { author: author.screen_name.toLowerCase(), name: String(author.name || author.screen_name).slice(0, 50), avatar: avatarUrl(author.avatar_url), text: String(tweet.text || '') };
+    missing = status === 404;
+  } catch {}
   try {
     const { status, data } = await fetchJson(`https://publish.twitter.com/oembed?url=${encodeURIComponent(`https://twitter.com/i/status/${id}`)}&omit_script=true&dnt=true`, fetcher);
     if (data) {
       const paragraph = /<p[^>]*>([\s\S]*?)<\/p>/i.exec(data.html || '')?.[1];
       const author = /(?:twitter|x)\.com\/([A-Za-z0-9_]{1,15})/i.exec(data.author_url || '')?.[1];
-      if (paragraph !== undefined && author) return { author: author.toLowerCase(), text: htmlToText(paragraph) };
+      if (paragraph !== undefined && author) return { author: author.toLowerCase(), name: String(data.author_name || author).slice(0, 50), avatar: null, text: htmlToText(paragraph) };
     }
-    if (status === 404 || status === 403) throw new Rejection('That post was not found. It may be deleted, private or from a protected account.');
+    if (status === 404 || status === 403) throw notFound();
   } catch (error) { if (error instanceof Rejection) throw error; }
-  try {
-    const { status, data } = await fetchJson(`https://api.fxtwitter.com/status/${id}`, fetcher);
-    if (data?.tweet?.author?.screen_name) return { author: data.tweet.author.screen_name.toLowerCase(), text: String(data.tweet.text || '') };
-    if (status === 404) throw new Rejection('That post was not found. It may be deleted, private or from a protected account.');
-  } catch (error) { if (error instanceof Rejection) throw error; }
+  if (missing) throw notFound();
   throw unavailable('Could not read that post from X right now. Please try again in a minute.');
 }
 
@@ -73,6 +80,6 @@ export function createVerifier({ ticker, coinAddress, campaignStart = 0, llm, fe
     if (!mentionsCoin(tweet.text, { ticker, coinAddress })) throw new Rejection(`Your post must mention $${ticker}.`);
     const verdict = await judgeTweet(tweet.text, { ticker, fetcher, ...llm });
     if (!verdict.approved) throw new Rejection(`Your post was not approved: ${verdict.reason || `it must promote $${ticker} positively.`}`);
-    return { tweetId: id, author: tweet.author, text: tweet.text };
+    return { tweetId: id, author: tweet.author, name: tweet.name, avatar: tweet.avatar, text: tweet.text };
   };
 }
