@@ -1,6 +1,6 @@
 // Coin launches on pump.fun. The launcher's wallet pays and signs; the coin's own GET-PAID wallet
 // (derived from MASTER_SEED) is set as creator, so every creator fee lands where only the server can spend it.
-import { ComputeBudgetProgram, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { AddressLookupTableProgram, ComputeBudgetProgram, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from '@pump-fun/pump-sdk';
 import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, createCloseAccountInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import BN from 'bn.js';
@@ -16,6 +16,7 @@ const MAX_DEV_BUY_SOL = 50;
 const MIN_CLAIM_LAMPORTS = 2_000_000;
 // Once a coin wallet holds this much, it pays for its own claims instead of the main payout wallet.
 const SELF_PAY_LAMPORTS = 10_000_000;
+const MAX_TRANSACTION_BYTES = 1232, LOOKUP_TABLE_KEY = 'launch_lookup_table';
 
 function optionalUrl(value, label, hosts) {
   const text = String(value || '').trim();
@@ -84,32 +85,82 @@ export async function claimTransaction({ connection, online, owner, payer, avail
   return transaction.add(SystemProgram.transfer({ fromPubkey: owner, toPubkey: payer, lamports: refund }));
 }
 
+// The instructions for one launch: create the coin with `creator` as its fee wallet, plus the launcher's first buy if any.
+// `state` (pump.fun's global and fee config) is only needed for a first buy.
+export async function launchInstructions({ mint, name, symbol, uri, creator, user, devBuySol }, state) {
+  const base = { mint, name, symbol, uri, creator, user, mayhemMode: false };
+  const priority = [ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200_000 })];
+  if (!(devBuySol > 0)) return [...priority, await PUMP_SDK.createV2Instruction(base)];
+  const { global, feeConfig } = state, solAmount = new BN(Math.round(devBuySol * LAMPORTS_PER_SOL));
+  return [...priority, ...await PUMP_SDK.createV2AndBuyInstructions({ ...base, global, solAmount, amount: getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply: null, bondingCurve: null, amount: solAmount, quoteMint: PublicKey.default }) })];
+}
+
 export function createLauncher({ rpcUrl, seed, store, upload, feePayer = null, log = console }) {
   const connection = new Connection(rpcUrl, 'confirmed'), online = new OnlinePumpSdk(connection);
   const walletFor = index => coinKeypair(seed, index);
+
+  const chainState = async () => { const [global, feeConfig] = await Promise.all([online.fetchGlobal(), online.fetchFeeConfig()]); return { global, feeConfig }; };
+
+  // A launch with a first buy names too many accounts for Solana's 1,232-byte transaction limit. The accounts every
+  // launch shares (programs and pump.fun's global accounts) go in an address lookup table instead, created once by
+  // the main payout wallet (about 0.006 SOL) and remembered in the database.
+  let table = null;
+  async function lookupTable(state) {
+    if (table) return table;
+    const saved = await store.setting(LOOKUP_TABLE_KEY);
+    if (saved) {
+      const { value } = await connection.getAddressLookupTable(new PublicKey(saved));
+      if (value) return table = value;
+    }
+    if (!feePayer) return null;
+    // The shared accounts are the ones that stay the same across two launches with different coins and wallets.
+    const accounts = async () => { const key = () => Keypair.generate().publicKey; return new Set((await launchInstructions({ mint: key(), creator: key(), user: key(), name: 'x', symbol: 'X', uri: 'x', devBuySol: 0.01 }, state)).flatMap(instruction => [instruction.programId, ...instruction.keys.map(meta => meta.pubkey)]).map(String)); };
+    const [first, second] = await Promise.all([accounts(), accounts()]);
+    const addresses = [...first].filter(address => second.has(address)).map(address => new PublicKey(address));
+    const [create, address] = AddressLookupTableProgram.createLookupTable({ authority: feePayer.publicKey, payer: feePayer.publicKey, recentSlot: await connection.getSlot('finalized') });
+    const extend = AddressLookupTableProgram.extendLookupTable({ authority: feePayer.publicKey, payer: feePayer.publicKey, lookupTable: address, addresses });
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const transaction = new Transaction({ feePayer: feePayer.publicKey, blockhash, lastValidBlockHeight }).add(create, extend);
+    transaction.sign(feePayer);
+    const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 });
+    if ((await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')).value.err) throw new Error('Creating the lookup table failed.');
+    await store.saveSetting(LOOKUP_TABLE_KEY, address.toBase58());
+    log.log?.(`Created launch lookup table ${address.toBase58()} with ${addresses.length} accounts.`);
+    // A table can be used from the slot after it was extended.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const { value } = await connection.getAddressLookupTable(address);
+      if (value?.state.addresses.length && await connection.getSlot('confirmed') > value.state.lastExtendedSlot) return table = value;
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    throw unavailable('The launch system is warming up. Please try again in a few seconds.');
+  }
 
   async function prepare(input) {
     if (!upload) throw unavailable('Coin launches are not switched on yet.');
     const coin = validateLaunch(input);
     if (await store.tickerTaken(coin.symbol)) throw Object.assign(new Error(`$${coin.symbol} is already running on GET-PAID. Pick another ticker.`), { status: 409 });
     const { image, uri } = await upload(coin);
-    const mint = Keypair.generate(), user = new PublicKey(coin.launcher);
-    const index = await store.reserveCoin({ id: mint.publicKey.toBase58(), ticker: coin.symbol, name: coin.name, description: coin.description, image, twitter: coin.twitter, telegram: coin.telegram, website: coin.website, launcher: coin.launcher },
+    const mint = Keypair.generate(), user = new PublicKey(coin.launcher), id = mint.publicKey.toBase58();
+    const index = await store.reserveCoin({ id, ticker: coin.symbol, name: coin.name, description: coin.description, image, twitter: coin.twitter, telegram: coin.telegram, website: coin.website, launcher: coin.launcher },
       index => walletFor(index).publicKey.toBase58());
     const creator = walletFor(index).publicKey;
-    const base = { mint: mint.publicKey, name: coin.name, symbol: coin.symbol, uri, creator, user, mayhemMode: false };
-    let instructions;
-    if (coin.devBuySol > 0) {
-      const [global, feeConfig] = await Promise.all([online.fetchGlobal(), online.fetchFeeConfig()]);
-      const solAmount = new BN(Math.round(coin.devBuySol * LAMPORTS_PER_SOL));
-      instructions = await PUMP_SDK.createV2AndBuyInstructions({ ...base, global, solAmount, amount: getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply: null, bondingCurve: null, amount: solAmount, quoteMint: PublicKey.default }) });
-    } else instructions = [await PUMP_SDK.createV2Instruction(base)];
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-    const transaction = new Transaction({ feePayer: user, blockhash, lastValidBlockHeight })
-      .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200_000 }), ...instructions);
-    // The mint key signs here and is then discarded: the signed transaction is the only way this coin can ever be created.
-    transaction.partialSign(mint);
-    return { mint: mint.publicKey.toBase58(), payoutWallet: creator.toBase58(), transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64') };
+    try {
+      const state = coin.devBuySol > 0 ? await chainState() : null;
+      const instructions = await launchInstructions({ mint: mint.publicKey, name: coin.name, symbol: coin.symbol, uri, creator, user, devBuySol: coin.devBuySol }, state);
+      const tables = state ? [await lookupTable(state).catch(error => { log.error?.('Launch lookup table unavailable:', error.message); return null; })].filter(Boolean) : [];
+      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      const transaction = new VersionedTransaction(new TransactionMessage({ payerKey: user, recentBlockhash: blockhash, instructions }).compileToV0Message(tables));
+      // The mint key signs here and is then discarded: the signed transaction is the only way this coin can ever be created.
+      transaction.sign([mint]);
+      let bytes = null;
+      try { bytes = transaction.serialize(); } catch {} // web3.js throws on anything over the size limit
+      if (!bytes || bytes.length > MAX_TRANSACTION_BYTES) throw unavailable(tables.length ? 'This launch is too large for one Solana transaction. Try a shorter name or description link.' : 'First buys are not available right now. Launch without a first buy, and buy on pump.fun right after.');
+      return { mint: id, payoutWallet: creator.toBase58(), transaction: Buffer.from(bytes).toString('base64') };
+    } catch (error) {
+      // Nothing was handed to the launcher, so free the ticker straight away.
+      await store.setCoinStatus(id, 'abandoned').catch(() => {});
+      throw error;
+    }
   }
 
   // A coin goes live once its bonding curve exists on-chain with our wallet as creator.

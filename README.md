@@ -22,6 +22,10 @@ Anyone can launch a coin on pump.fun from `/launch`. Each launched coin gets its
 3. **Go live.** Once the bonding curve exists on-chain with that wallet as creator, the coin is listed at `/coins` and gets its own page at `/coin/<mint>`. Launches whose tab was closed before confirming are settled from the chain; ones that never land are marked abandoned after 15 minutes.
 4. **Shill and pay.** Coin pages work like the main page, scoped to that coin: posts must mention its ticker or address, and each coin has its own queue, reveal room, totals, daily cap and one-reward-per-account limit. Payouts come from the coin's wallet. When it runs low, the server collects the coin's creator fees from pump.fun (bonding curve and PumpSwap), at most every 5 minutes. The main payout wallet pays that network fee if it is set. A coin pays out only as fast as its fees come in.
 
+A launch with a first buy is too large for a plain Solana transaction, so the accounts every launch shares go in an address lookup table. The main payout wallet creates it once (about 0.006 SOL), on the first launch with a first buy; until then, first buys show a message instead.
+
+To take a coin off the site (spam, tests), run `node scripts/coin.mjs hide <mint>` with the production database in `.env`; `show <mint>` brings it back and `list` shows them all. Its wallet and fees are untouched.
+
 Launched coin wallets are never reused. The database stores only their public address and index; keys are derived when needed.
 
 ## Safety

@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml'};
 // background(promise) keeps work running after the response (Vercel's waitUntil); locally it just lets the promise run.
 // Launched coins live at /coin/<mint address> and reuse the main page; everything else about them comes from the API.
-const COIN_ID=/^(main|[1-9A-HJ-NP-Za-km-z]{32,44})$/,PAGES={'/':'/index.html','/coins':'/coins.html','/launch':'/launch.html'};
+const COIN_ID=/^(main|[1-9A-HJ-NP-Za-km-z]{32,44})$/,PAGES={'/':'/index.html','/explore':'/coins.html','/coins':'/coins.html','/launch':'/launch.html'};
 export function createAppServer({directory,store,launcher=null,rateLimit=5,trustProxy=false,background=promise=>promise}){
   const root=path.resolve(directory),cache=new Map(),limits=new Map();
   function json(res,status,body){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(body));}

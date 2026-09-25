@@ -28,7 +28,7 @@ showWallets();
 async function api(url,body){
   const response=await fetch(url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(60000)});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(data.error||'Something went wrong. Please try again.');
+  if(!response.ok)throw new Error(data.error||(response.status>=500?`The server did not finish in time (${response.status}). Please try again in a minute.`:'Something went wrong. Please try again.'));
   return data;
 }
 const readImage=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read that image.'));reader.readAsDataURL(file);});

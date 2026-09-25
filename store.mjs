@@ -157,10 +157,19 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
   const tickerTaken = async symbol => symbol.toUpperCase() === String(mainCoin.ticker || '').toUpperCase()
     || Boolean(await one("SELECT 1 FROM coins WHERE upper(ticker)=? AND (status='live' OR (status='pending' AND created_at>?))", [symbol.toUpperCase(), clock() - 15 * 60000]));
   const coinRow = async id => (await one('SELECT * FROM coins WHERE id=?', [String(id)])) || null;
-  const pendingCoins = () => all("SELECT * FROM coins WHERE status='pending' ORDER BY created_at LIMIT 20");
+  const hiddenCoins = () => all("SELECT * FROM coins WHERE status='hidden' ORDER BY launched_at DESC");
+  const pendingCoins = () =>all("SELECT * FROM coins WHERE status='pending' ORDER BY created_at LIMIT 20");
   async function setCoinStatus(id, status, signature = null) {
     if (await run("UPDATE coins SET status=?, signature=coalesce(?,signature), launched_at=CASE WHEN ?='live' THEN ? ELSE launched_at END WHERE id=? AND status='pending'", [status, signature, status, clock(), id])) await bump();
   }
+  // Takes a live coin off the site (its page, the list and its payouts) or brings it back. Its wallet and fees stay untouched.
+  async function setCoinHidden(id, hidden) {
+    const changed = await run('UPDATE coins SET status=? WHERE id=? AND status=?', hidden ? ['hidden', id, 'live'] : ['live', id, 'hidden']);
+    if (changed) await bump();
+    return Boolean(changed);
+  }
+  const setting = async key => (await one('SELECT value FROM metadata WHERE key=?', [key]))?.value ?? null;
+  const saveSetting = (key, value) => run('INSERT INTO metadata VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [key, String(value)]);
 
   // Settles payouts whose outcome was unknown (timeout or crash) using the saved signature.
   async function reconcile() {
@@ -263,5 +272,5 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
     } finally { running = false; }
   }
 
-  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, setCoinStatus, processPayouts, close: () => db.close() };
+  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, hiddenCoins, setCoinStatus, setCoinHidden, setting, saveSetting, processPayouts, close: () => db.close() };
 }

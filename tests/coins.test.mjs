@@ -188,7 +188,7 @@ test('coin pages, the coin list and the launch API are served', async () => {
   const base = `http://127.0.0.1:${server.address().port}`;
   const html = async route => { const response = await fetch(base + route); return [response.status, response.headers.get('content-type'), await response.text()]; };
   try {
-    for (const [route, marker] of [['/coins', 'coin-grid'], ['/launch', 'launch-form'], [`/coin/${MINT}`, 'submission-form'], ['/coins/', 'coin-grid']]) {
+    for (const [route, marker] of [['/coins', 'coin-grid'], ['/launch', 'launch-form'], [`/coin/${MINT}`, 'submission-form'], ['/coins/', 'coin-grid'], ['/explore', 'coin-grid']]) {
       const [status, type, body] = await html(route);
       assert.equal(status, 200, route); assert.match(type, /text\/html/); assert.ok(body.includes(marker), route);
     }
