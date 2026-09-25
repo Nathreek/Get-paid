@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml'};
 // background(promise) keeps work running after the response (Vercel's waitUntil); locally it just lets the promise run.
 // Launched coins live at /coin/<mint address> and reuse the main page; everything else about them comes from the API.
+const PAYOUT_NUDGE_MS=3000;
 const COIN_ID=/^(main|[1-9A-HJ-NP-Za-km-z]{32,44})$/,PAGES={'/':'/index.html','/explore':'/coins.html','/coins':'/coins.html','/launch':'/launch.html'};
 export function createAppServer({directory,store,launcher=null,rateLimit=5,trustProxy=false,background=promise=>promise}){
   const root=path.resolve(directory),cache=new Map(),limits=new Map();
@@ -27,7 +28,9 @@ export function createAppServer({directory,store,launcher=null,rateLimit=5,trust
     if(cache.size>=128&&!old)cache.delete(cache.keys().next().value);cache.set(file,item);
     try{return await item.promise;}catch(error){cache.delete(file);throw error;}
   }
-  const payouts=()=>background(store.processPayouts().catch(()=>{}));
+  // Page polls nudge the payout queue (on Vercel nothing else does), but at most every few seconds however many people are watching.
+  let lastNudge=0;
+  const payouts=()=>{if(Date.now()-lastNudge<PAYOUT_NUDGE_MS)return;lastNudge=Date.now();background(store.processPayouts().catch(()=>{}));};
   const server=http.createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
     try{

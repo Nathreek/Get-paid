@@ -3,7 +3,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { config } from './dist/config.js';
 import { createStore, MAIN_COIN, TIERS, TIER_SIZE } from './store.mjs';
-import { createVerifier } from './verify.mjs';
+import { createVerifier, createRecheck } from './verify.mjs';
 import { createPayer, parseSecretKey, solPrice } from './payout.mjs';
 import { createLauncher, createPinata } from './launch.mjs';
 import { parseMasterSeed } from './wallets.mjs';
@@ -40,6 +40,7 @@ export async function createApp(env = process.env) {
       campaignStart: env.CAMPAIGN_START ? Date.parse(env.CAMPAIGN_START) || 0 : 0,
       llm: { apiKey: env.GROQ_API_KEY, baseUrl: env.LLM_BASE_URL || 'https://api.groq.com/openai/v1', model: env.LLM_MODEL || 'openai/gpt-oss-120b' },
     }),
+    recheck: createRecheck(),
     mainCoin: { ticker: config.ticker, coinAddress: config.coinAddress, payoutWallet: payer?.address || null },
     payerFor,
     claimFees: coin => launcher.claimFees(coin.walletIndex),

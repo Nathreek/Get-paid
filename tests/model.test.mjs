@@ -67,3 +67,14 @@ test('fxtwitter supplies the display name and avatar; only X-hosted avatars are 
   assert.equal((await fetchTweet('1', fx('https://evil.test/x.jpg'))).avatar, null);
   assert.equal((await fetchTweet('1', fx('javascript:alert(1)'))).avatar, null);
 });
+
+test('the payout recheck rejects deleted posts and posts edited to drop the coin, and waits on outages', async () => {
+  const { createRecheck } = await import('../verify.mjs');
+  const coin = { ticker: 'PAID', coinAddress: '' };
+  const submission = { tweet_id: '1', wallet: WALLET, tweet_text: '$PAID 🚀' };
+  const serve = text => async url => url.includes('oembed') ? reply({ author_url: 'https://x.com/sam', html: `<p>${text}</p>` }) : reply(null, 500);
+  await createRecheck({ fetcher: serve('$PAID 🚀') })(submission, coin);
+  await assert.rejects(() => createRecheck({ fetcher: async () => reply(null, 404) })(submission, coin), error => error instanceof Rejection && /deleted/.test(error.message));
+  await assert.rejects(() => createRecheck({ fetcher: serve('gm') })(submission, coin), /no longer mentions \$PAID/);
+  await assert.rejects(() => createRecheck({ fetcher: async () => { throw new Error('offline'); } })(submission, coin), error => !(error instanceof Rejection));
+});

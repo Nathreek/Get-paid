@@ -125,6 +125,40 @@ svg.path{position:absolute;left:0;top:0;overflow:visible}
 .qr img{width:332px;height:332px;display:block}
 .qr b{display:block;margin-top:22px;font-size:36px;letter-spacing:-.02em}
 .url{font-family:'JetBrains Mono',monospace;color:var(--text)}
+/* launch */
+.newtag{display:inline-block;font-size:15px;font-weight:800;letter-spacing:.08em;padding:5px 9px;border-radius:7px;background:#fff;color:#0b0b0b;margin-right:4px}
+.lform{position:absolute;left:100px;top:40px;width:680px;padding:38px}
+.lrow{display:flex;gap:26px;align-items:flex-start}
+.limg{width:150px;height:150px;border-radius:30px;background:linear-gradient(135deg,#14F195,#9945FF);display:grid;place-items:center;font-size:84px;flex:none}
+.lfields{flex:1;min-width:0}
+.inp.sm{height:62px;font-size:23px;margin-bottom:0}
+.lform .lbl{margin-top:14px}.lform .lbl:first-child{margin-top:0}
+.lwallet{margin-top:24px;display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border:1px solid #333;border-radius:14px;font-size:21px;color:var(--muted)}
+.lwallet code{font-family:'JetBrains Mono',monospace;color:var(--text)}
+.lwallet .ok{color:var(--green);font-weight:700}
+.live{position:absolute;left:100px;top:640px}
+/* fees flow */
+.fnode{position:absolute;left:110px;width:660px;padding:24px 28px;display:flex;align-items:center;gap:20px}
+.fnode .fi{width:74px;height:74px;border-radius:20px;display:grid;place-items:center;font-size:40px;flex:none;background:#202020;border:1px solid #333}
+.fnode .fi.coinbg{background:linear-gradient(135deg,#14F195,#9945FF);border:0}
+.fnode b{display:block;font-size:27px}.fnode small{font-size:20px;color:var(--muted)}
+.fnode .fee{margin-left:auto;font-family:'JetBrains Mono',monospace;color:var(--green);font-size:26px;white-space:nowrap}
+.fline{position:absolute;left:438px;width:4px;background:repeating-linear-gradient(#4a4a4a 0 8px,transparent 8px 16px);border-radius:2px}
+.flabel{position:absolute;left:470px;font-size:18px;letter-spacing:.14em;color:var(--muted);font-weight:600}
+.fdot{position:absolute;left:428px;width:24px;height:24px;border-radius:50%;background:var(--green);box-shadow:0 0 20px rgba(20,241,149,.8)}
+.chips{position:absolute;left:0;right:0;top:600px;display:flex;justify-content:center;gap:16px}
+.chip{display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:999px;background:var(--panel);border:1px solid var(--border);font-size:22px}
+.chip b{color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:500}
+/* explore */
+.cgrid{position:absolute;left:30px;top:40px;width:820px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ccard{padding:26px;height:300px;display:flex;flex-direction:column;gap:16px}
+.chead{display:flex;align-items:center;gap:16px}
+.cimg{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:36px;flex:none}
+.chead b{display:block;font-size:25px}.chead span{font-size:19px;color:var(--muted)}
+.home{margin-left:auto;font-size:14px;font-weight:800;letter-spacing:.1em;padding:5px 10px;border:1px solid #555;border-radius:999px;color:#ddd}
+.cstats{display:flex;gap:30px;padding-top:14px;border-top:1px solid #262626}
+.cstats span{font-size:16px;color:#8a8a8a;display:block}.cstats strong{font-size:23px;font-family:'JetBrains Mono',monospace;font-weight:500}
+.cbtn{margin-top:auto;height:54px;border-radius:14px;background:#fff;color:#0b0b0b;font-weight:700;font-size:21px;display:grid;place-items:center}
 #fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
 </style>
 </head>
@@ -139,7 +173,8 @@ svg.path{position:absolute;left:0;top:0;overflow:visible}
     <div class="intro">
       <img id="i-logo" src="../dist/assets/gp-monogram.png" alt="">
       <div class="word" id="i-word">GET-PAID</div>
-      <div class="tag" id="i-tag"><span>Shill the coin.</span> Get paid in SOL.</div>
+      <div class="tag" id="i-tag"><span>Shill a coin.</span> Get paid in SOL.</div>
+      <div class="tag" id="i-tag2">Or <span>launch your own.</span></div>
     </div>
   </section>
 
@@ -258,10 +293,70 @@ svg.path{position:absolute;left:0;top:0;overflow:visible}
     </div>
   </section>
 
+  <!-- L1 launch -->
+  <section class="scene" id="l1">
+    <div class="copy">
+      <div class="eyebrow"><span class="newtag">NEW</span><b>07</b> LAUNCH</div>
+      <h1><span class="line">Launch your</span><span class="line">own coin.</span></h1>
+      <p class="sub">Create it on pump.fun right from GET-PAID. Your wallet signs, and you can add a first buy.</p>
+    </div>
+    <div class="visual">
+      <div class="card lform" id="lf">
+        <div class="lrow">
+          <div class="limg" id="limg">🐱</div>
+          <div class="lfields">
+            <div class="lbl">Name</div><div class="inp sm" id="ln"><span id="lnt"></span></div>
+            <div class="lbl">Ticker</div><div class="inp sm" id="ls"><span class="ic">$</span><span id="lst"></span></div>
+          </div>
+        </div>
+        <div class="lbl" style="margin-top:22px">Your first buy</div><div class="inp sm" id="lb"><span class="ic">◎</span><span id="lbt"></span></div>
+        <div class="lwallet"><span>Paying from <code>7xKX…gAsU</code></span><span class="ok">✓ Connected</span></div>
+        <div class="btn" id="lbtn" style="margin-top:24px"><span id="lbtnt">Launch on pump.fun ↗</span></div>
+      </div>
+      <svg class="cursor" id="lcur" viewBox="0 0 24 24"><path d="M4 2l16 10-7 1.5L9.5 21z" fill="#fff" stroke="#0b0b0b" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <div class="live" id="live"><span class="pill g">✓ $CATCOIN is live on pump.fun</span></div>
+    </div>
+  </section>
+
+  <!-- L2 fees pay shillers -->
+  <section class="scene" id="l2">
+    <div class="copy">
+      <div class="eyebrow"><b>08</b> FEES</div>
+      <h1><span class="line">Its fees pay</span><span class="line m">its shillers.</span></h1>
+      <p class="sub">Every creator fee goes to a wallet made just for that coin. Not to the dev: to the people who post about it.</p>
+    </div>
+    <div class="visual">
+      <div class="card fnode" id="fn1" style="top:30px"><div class="fi coinbg">🐱</div><div><b>$CATCOIN</b><small>trades on pump.fun</small></div></div>
+      <div class="fline" style="top:160px;height:140px"></div><div class="flabel" style="top:216px">CREATOR FEES</div>
+      <div class="card fnode" id="fn2" style="top:305px"><div class="fi"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#14F195" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><div><b>Coin payout wallet</b><small>only pays $CATCOIN's shillers</small></div><span class="fee" id="fee">+0.000 SOL</span></div>
+      <div class="fline" style="top:435px;height:140px"></div><div class="flabel" style="top:491px">PAID IN SOL</div>
+      <div class="fdot" id="d1"></div><div class="fdot" id="d2"></div><div class="fdot" id="d3"></div>
+      <div class="fdot" id="d4"></div><div class="fdot" id="d5"></div><div class="fdot" id="d6"></div>
+      <div class="chips"><span class="chip" id="ch1">🐸 @moonfrog <b>+0.05</b></span><span class="chip" id="ch2">🦊 @kai <b>+0.05</b></span><span class="chip" id="ch3">🐧 @pxl <b>+0.04</b></span></div>
+    </div>
+  </section>
+
+  <!-- L3 explore -->
+  <section class="scene" id="l3">
+    <div class="copy">
+      <div class="eyebrow"><b>09</b> EXPLORE</div>
+      <h1><span class="line">Every coin,</span><span class="line">its own</span><span class="line m">campaign.</span></h1>
+      <p class="sub">Pick a coin on Explore. Each has its own page, queue and payouts, all public on Solscan.</p>
+    </div>
+    <div class="visual">
+      <div class="cgrid">
+        <div class="card ccard" id="cc1"><div class="chead"><div class="cimg" style="background:#fff"><img src="../dist/assets/gp-monogram.png" alt="" style="width:46px"></div><div><b>GET-PAID</b><span>$GETPAID</span></div><span class="home">HOME</span></div><div class="cstats"><div><span>Paid out</span><strong>4.82 SOL</strong></div><div><span>Posts paid</span><strong>112</strong></div></div><div class="cbtn">Shill $GETPAID ↗</div></div>
+        <div class="card ccard" id="cc2"><div class="chead"><div class="cimg" style="background:linear-gradient(135deg,#14F195,#9945FF)">🐱</div><div><b>Cat Coin</b><span>$CATCOIN</span></div></div><div class="cstats"><div><span>Paid out</span><strong>1.37 SOL</strong></div><div><span>Posts paid</span><strong>31</strong></div></div><div class="cbtn">Shill $CATCOIN ↗</div></div>
+        <div class="card ccard" id="cc3"><div class="chead"><div class="cimg" style="background:#1f3b2a">🐸</div><div><b>Frog Club</b><span>$FROG</span></div></div><div class="cstats"><div><span>Paid out</span><strong>0.92 SOL</strong></div><div><span>Posts paid</span><strong>22</strong></div></div><div class="cbtn">Shill $FROG ↗</div></div>
+        <div class="card ccard" id="cc4"><div class="chead"><div class="cimg" style="background:#2b2340">🌙</div><div><b>Moon Dog</b><span>$MOOND</span></div></div><div class="cstats"><div><span>Paid out</span><strong>0.41 SOL</strong></div><div><span>Posts paid</span><strong>9</strong></div></div><div class="cbtn">Shill $MOOND ↗</div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- 8 safe -->
   <section class="scene" id="s8">
     <div class="copy">
-      <div class="eyebrow"><b>07</b> SAFETY</div>
+      <div class="eyebrow"><b>10</b> SAFETY</div>
       <h1><span class="line">Built to</span><span class="line">pay fairly.</span></h1>
       <p class="sub">Spam is limited, payouts are capped, and no one is ever paid twice.</p>
     </div>
@@ -269,7 +364,7 @@ svg.path{position:absolute;left:0;top:0;overflow:visible}
       <div class="tiles">
         <div class="card tile" id="t1"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div><b>AI-checked posts</b><p>Only real posts that back the coin get approved.</p></div>
         <div class="card tile" id="t2"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></div><b>One reward each</b><p>Per post, per wallet, per X account.</p></div>
-        <div class="card tile" id="t3"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><b>Daily cap</b><p>Payouts pause once the daily limit is reached.</p></div>
+        <div class="card tile" id="t3"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><b>Fees locked per coin</b><p>Each coin pays only from its own wallet.</p></div>
         <div class="card tile" id="t4"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><b>Never sent twice</b><p>Every send is checked on-chain before retrying.</p></div>
       </div>
     </div>
@@ -280,7 +375,7 @@ svg.path{position:absolute;left:0;top:0;overflow:visible}
     <div class="copy">
       <div class="eyebrow"><b>●</b> LIVE NOW</div>
       <h1><span class="line">Go get paid.</span></h1>
-      <p class="sub">Post about <span class="tk">$GETPAID</span>, paste the link, and get paid in SOL at <span class="url">get-paid.xyz</span></p>
+      <p class="sub">Shill a coin and get paid in SOL, or launch your own at <span class="url">get-paid.xyz</span></p>
     </div>
     <div class="visual">
       <div class="qr" id="qr"><img src="qr.svg" alt=""><b>get-paid.xyz</b></div>
@@ -330,8 +425,9 @@ const TWEET = [['Loving ', ''], ['$GETPAID', 'tk'], [' 🚀 early and building. 
 const TWEET_LEN = TWEET.reduce((s, [x]) => s + Array.from(x).length, 0);
 
 // Scenes: [id, start, end]
-const S = [['s1', 0, 5.2], ['s2', 5.2, 12.2], ['s3', 12.2, 19.4], ['s4', 19.4, 27], ['s5', 27, 34.2], ['s6', 34.2, 41.4], ['s7', 41.4, 48.4], ['s8', 48.4, 54.6], ['s9', 54.6, 62]];
-const DURATION = 62;
+const S = [['s1', 0, 5.8], ['s2', 5.8, 12.8], ['s3', 12.8, 20], ['s4', 20, 27.6], ['s5', 27.6, 34.8], ['s6', 34.8, 42], ['s7', 42, 49],
+  ['l1', 49, 57.4], ['l2', 57.4, 65], ['l3', 65, 72.2], ['s8', 72.2, 78.4], ['s9', 78.4, 86]];
+const DURATION = 86;
 
 function copyIn(sc, t) {
   const eb = sc.querySelector('.eyebrow'), lines = sc.querySelectorAll('h1 .line'), sub = sc.querySelector('.sub');
@@ -351,6 +447,7 @@ const R = {
     $('i-logo').style.filter = `invert(1) blur(${(1 - cl(k * 1.4)) * 12}px)`;
     appear($('i-word'), t, .9, .8, 30, 16);
     appear($('i-tag'), t, 1.5, .8, 20);
+    appear($('i-tag2'), t, 2.6, .8, 20);
   },
   s2(t) {
     appear($('tw'), t, .5, .8, 50);
@@ -444,6 +541,48 @@ const R = {
     $('ss').style.background = `rgba(255,255,255,${h})`;
     $('ss').style.color = h > .5 ? '#0b0b0b' : '';
   },
+  l1(t) {
+    appear($('lf'), t, .4, .8, 50);
+    pop($('limg'), t, 1.0, .6);
+    const type = (id, text, a, b) => { const n = Math.round(lerp(0, text.length, pr(t, a, b))); $(id).innerHTML = text.slice(0, n) + (t > a - .2 && t < b + .3 ? caret(t, t < b) : ''); };
+    type('lnt', 'Cat Coin', 1.4, 2.2); type('lst', 'CATCOIN', 2.4, 3.1); type('lbt', '0.5 SOL', 3.3, 3.8);
+    $('ln').classList.toggle('focus', t > 1.2 && t < 2.5); $('ls').classList.toggle('focus', t > 2.2 && t < 3.4); $('lb').classList.toggle('focus', t > 3.1 && t < 4.1);
+    const m = eio(pr(t, 4.0, 4.8)), press = t > 4.85 && t < 5.1;
+    $('lcur').style.opacity = pr(t, 3.8, 4.1) * (1 - pr(t, 6.2, 6.5));
+    $('lcur').style.transform = `translate(${lerp(820, 470, m)}px,${lerp(760, 610, m)}px) scale(${press ? .85 : 1})`;
+    $('lbtn').style.transform = `scale(${press ? .96 : 1})`;
+    if (t > 5.0 && t < 6.0) $('lbtnt').innerHTML = `<span style="display:flex;align-items:center;gap:14px"><span class="spin" style="transform:rotate(${t * 520}deg)"></span>Approve in wallet…</span>`;
+    else $('lbtnt').textContent = t >= 6.0 ? '✓ Launched' : 'Launch on pump.fun ↗';
+    $('lbtn').style.background = t >= 6.0 ? 'var(--green)' : '';
+    pop($('live'), t, 6.1, .6);
+    $('glow').style.opacity = .6 * eo(pr(t, 6.1, 7));
+  },
+  l2(t) {
+    appear($('fn1'), t, .4, .7, 40); appear($('fn2'), t, .8, .7, 40);
+    // Fees drop from the coin into its wallet, then out to the shillers.
+    const drop = (id, from, to, start) => { const k = pr(t, start, start + 1.0), el = $(id); el.style.top = lerp(from, to, eio(k)) + 'px'; el.style.opacity = k > 0 && k < 1 ? 1 : 0; };
+    drop('d1', 150, 300, 1.4); drop('d2', 150, 300, 2.0); drop('d3', 150, 300, 2.6);
+    drop('d4', 425, 575, 3.6); drop('d5', 425, 575, 4.0); drop('d6', 425, 575, 4.4);
+    const fee = eo(pr(t, 2.2, 3.7)) * 0.42 - eo(pr(t, 4.4, 5.4)) * 0.14;
+    $('fee').textContent = '+' + Math.max(0, fee).toFixed(3) + ' SOL';
+    $('fn2').style.borderColor = t > 2.3 && t < 5.6 ? 'rgba(20,241,149,.7)' : '';
+    $('fn2').style.boxShadow = t > 2.3 && t < 5.6 ? '0 0 50px rgba(20,241,149,.2)' : '';
+    ['ch1', 'ch2', 'ch3'].forEach((id, i) => pop($(id), t, 4.6 + i * .35, .5));
+    $('glow').style.opacity = .35 * eo(pr(t, 2, 3));
+  },
+  l3(t) {
+    ['cc1', 'cc2', 'cc3', 'cc4'].forEach((id, i) => {
+      const el = $(id); appear(el, t, .6 + i * .2, .7, 40, 8);
+      const focus = eo(pr(t, 3.6, 4.2));
+      if (t > 3.6) {
+        el.style.opacity = id === 'cc2' ? 1 : lerp(1, .35, focus);
+        el.style.transform = id === 'cc2' ? `scale(${lerp(1, 1.05, focus)})` : 'none';
+        el.style.borderColor = id === 'cc2' ? `rgba(20,241,149,${.7 * focus})` : '';
+        el.style.boxShadow = id === 'cc2' ? `0 0 ${60 * focus}px rgba(20,241,149,.25)` : '';
+      }
+    });
+    $('glow').style.opacity = .5 * eo(pr(t, 3.6, 4.4));
+  },
   s8(t) {
     ['t1', 't2', 't3', 't4'].forEach((id, i) => appear($(id), t, .9 + i * .28, .7, 40, 8));
   },
@@ -459,7 +598,7 @@ window.DURATION = DURATION;
 window.render = T => {
   $('grid').style.transform = `translate(${-(T * 6) % 44}px,${-(T * 3) % 44}px)`;
   $('glow').style.opacity = 0;
-  const b = pr(T, 5.2, 6.0);
+  const b = pr(T, 5.8, 6.6);
   $('brand').style.opacity = b;
   for (const [id, s, e] of S) {
     const sc = $(id), on = T >= s && T < e;

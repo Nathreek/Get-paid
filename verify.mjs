@@ -71,6 +71,17 @@ export async function judgeTweet(text, { ticker, apiKey, baseUrl, model, fetcher
   return { approved: verdict.approved, reason: String(verdict.reason || '').slice(0, 200) };
 }
 
+// Right before paying: the post must still be up and still mention the coin.
+// A post X cannot currently serve throws a plain error, so the payout waits.
+export function createRecheck({ fetcher = fetch } = {}) {
+  return async function recheck(submission, coin) {
+    let tweet;
+    try { tweet = await fetchTweet(submission.tweet_id, fetcher); }
+    catch (error) { throw error instanceof Rejection ? new Rejection('The post was deleted or made private before payout.') : error; }
+    if (!mentionsCoin(tweet.text, coin)) throw new Rejection(`The post no longer mentions $${coin.ticker}.`);
+  };
+}
+
 // verify(post, coin) checks against that coin's ticker and address; without one, against the site's own coin.
 export function createVerifier({ ticker: defaultTicker, coinAddress: defaultAddress, campaignStart = 0, llm, fetcher = fetch }) {
   return async function verify(post, { ticker = defaultTicker, coinAddress = defaultAddress } = {}) {

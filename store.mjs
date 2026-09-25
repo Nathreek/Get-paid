@@ -18,9 +18,11 @@ export function payoutCents(position, previous = 0, random = randomInt, tiers = 
 }
 const conflict = message => Object.assign(new Error(message), { status: 409 });
 const notFound = () => Object.assign(new Error('That coin was not found.'), { status: 404 });
-const FEE_POOL_TTL = 30000, CLAIM_EVERY = 5 * 60000, PRICE_TTL = 30000;
+const FEE_POOL_TTL = 30000, CLAIM_EVERY = 5 * 60000, PRICE_TTL = 30000, READ_CACHE_MS = 2000;
 // Coins paid at the same time per run; how long a coin waits after it could not pay (no funds yet, or its daily cap).
 const PARALLEL_COINS = 8, FUNDS_WAIT = 60000, CAP_WAIT = 10 * 60000;
+// How long a payout waits when X cannot be reached for its recheck; how many expired attempts before giving up.
+const RECHECK_WAIT = 60000, MAX_EXPIRED = 5;
 const payoutKey = coin => coin === MAIN_COIN ? 'next_payout_at' : `next_payout_at:${coin}`;
 
 const SCHEMA = [
@@ -52,8 +54,8 @@ const COIN_INDEXES = [
 // status: queued → sending → sent (or failed). Rejected posts are never stored.
 // Every query is scoped to one coin: each has its own queue, limits, payout wallet and totals.
 // payerFor(coin) returns the wallet that pays that coin's shillers; claimFees(coin) tops it up from creator fees;
-// feePool(coin) reports lamports available to it.
-export async function createStore({ url, authToken, verify, payer = null, payerFor = coin => coin.id === MAIN_COIN ? payer : null, claimFees = null, feePool = null, mainCoin = {}, price, cluster = 'mainnet', payoutsEnabled = false, payoutIntervalMs = 10000, dailyCapCents = 10000, maxPerAccount = 1, fixedCents = 0, tiers = TIERS, tierSize = TIER_SIZE, clock = Date.now, log = console }) {
+// feePool(coin) reports lamports available to it. recheck(submission, coin) throws a Rejection if a post no longer qualifies.
+export async function createStore({ url, authToken, verify, recheck = null, payer = null, payerFor = coin => coin.id === MAIN_COIN ? payer : null, claimFees = null, feePool = null, mainCoin = {}, price, cluster = 'mainnet', payoutsEnabled = false, payoutIntervalMs = 10000, dailyCapCents = 10000, maxPerAccount = 1, fixedCents = 0, tiers = TIERS, tierSize = TIER_SIZE, clock = Date.now, log = console }) {
   const db = createClient({ url, authToken });
   await db.batch(SCHEMA, 'write');
   // Columns added after launch; existing databases get them on startup. Existing rows belong to the main coin.
@@ -63,11 +65,12 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
   const one = async (sql, args = []) => (await db.execute({ sql, args })).rows[0];
   const all = async (sql, args = []) => (await db.execute({ sql, args })).rows;
   const run = async (sql, args = []) => (await db.execute({ sql, args })).rowsAffected;
-  const bump = () => run("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'");
+  const bump = async () => { reads.clear(); await run("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'"); reads.clear(); };
   const record = row => ({
     id: row.id, post: row.post, author: row.author, name: row.author_name || row.author, avatar: row.avatar_url || null, text: row.tweet_text, wallet: row.wallet, status: row.status, createdAt: row.created_at,
     ...(row.amount_cents === null ? {} : { amountCents: row.amount_cents }),
     ...(row.status === 'sent' ? { signature: row.signature, paidAt: row.paid_at, lamports: row.lamports } : {}),
+    ...(row.status === 'failed' && row.note ? { note: row.note } : {}),
   });
   const used = async (coin, column, value) => (await one(`SELECT count(*) AS n FROM submissions WHERE coin=? AND ${column}=? AND status!='failed'`, [coin, value])).n;
 
@@ -115,7 +118,23 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
     return record(await one('SELECT * FROM submissions WHERE id=?', [id]));
   }
 
-  async function state(requestedPage = 0, coinId = MAIN_COIN) {
+  // Every open page asks for the same data every few seconds. Answers are shared for READ_CACHE_MS, and any change
+  // made by this server clears them at once, so hundreds of viewers cost about as much as one.
+  const reads = new Map();
+  async function cached(key, compute) {
+    const hit = reads.get(key);
+    if (hit && clock() - hit.at < READ_CACHE_MS) return hit.value;
+    const value = compute();
+    reads.set(key, { at: clock(), value });
+    if (reads.size > 1000) reads.delete(reads.keys().next().value);
+    // A failed read is not kept, so the next request tries again.
+    value.catch(() => { if (reads.get(key)?.value === value) reads.delete(key); });
+    return value;
+  }
+  const state = (requestedPage = 0, coinId = MAIN_COIN) => cached(`state:${coinId}:${requestedPage}`, () => readState(requestedPage, coinId));
+  const coins = () => cached('coins', readCoins);
+
+  async function readState(requestedPage, coinId) {
     const coin = await findCoin(coinId);
     if (!coin) throw notFound();
     const total = (await one('SELECT count(*) AS n FROM submissions WHERE coin=?', [coin.id])).n;
@@ -131,7 +150,7 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
   }
 
   // Every live coin with its payout totals; the site's own coin first, then the newest launches.
-  async function coins() {
+  async function readCoins() {
     const rows = await all("SELECT * FROM coins WHERE status='live' ORDER BY launched_at DESC LIMIT 500");
     const stats = new Map((await all("SELECT coin, sum(status='sent') AS paid, coalesce(sum(CASE WHEN status='sent' THEN lamports END),0) AS lamports, sum(status IN ('queued','sending')) AS queued FROM submissions GROUP BY coin")).map(row => [row.coin, row]));
     const list = [mainInfo(), ...rows.map(coinInfo)];
@@ -180,7 +199,10 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
       const result = await coinPayer.status(row.signature, row.last_valid_height);
       if (result === 'confirmed') await run("UPDATE submissions SET status='sent', paid_at=?, note=NULL WHERE id=? AND status='sending'", [clock(), row.id]);
       else if (result === 'failed') await run("UPDATE submissions SET status='failed', note='Transaction failed on-chain.' WHERE id=? AND status='sending'", [row.id]);
-      else if (result === 'expired') await run("UPDATE submissions SET status='queued', signature=NULL, last_valid_height=NULL WHERE id=? AND status='sending'", [row.id]);
+      // It never landed, so it is safe to try again, but not forever.
+      else if (result === 'expired') await run(`UPDATE submissions SET status=CASE WHEN attempts>=${MAX_EXPIRED - 1} THEN 'failed' ELSE 'queued' END,
+        note=CASE WHEN attempts>=${MAX_EXPIRED - 1} THEN 'The network kept dropping this payment.' ELSE note END,
+        attempts=attempts+1, signature=NULL, last_valid_height=NULL WHERE id=? AND status='sending'`, [row.id]);
       if (result !== 'pending') await bump();
     }
     // A claim that never got as far as signing is safe to retry.
@@ -219,6 +241,15 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
     if (paid.author >= maxPerAccount || paid.wallet >= maxPerAccount) {
       await run("UPDATE submissions SET status='failed', note='Already rewarded.' WHERE id=? AND status='queued'", [next.id]); await bump(); return;
     }
+    // The post is checked again right before paying: deleted, or edited to drop the coin or the wallet, means no payout.
+    // If X cannot be reached, the entry waits instead of being rejected.
+    if (recheck) {
+      try { await recheck(next, coin); }
+      catch (error) {
+        if (!(error instanceof Rejection)) { log.warn?.(`Could not recheck a $${coin.ticker} post before paying:`, error.message); await later(key, RECHECK_WAIT); return; }
+        await run("UPDATE submissions SET status='failed', note=? WHERE id=? AND status='queued'", [error.message.slice(0, 200), next.id]); await bump(); return;
+      }
+    }
     let cents = next.amount_cents;
     if (cents === null) {
       const history = await one('SELECT count(*) AS n, coalesce(max(amount_cents),0) AS top FROM submissions WHERE coin=? AND amount_cents IS NOT NULL', [coin.id]);
@@ -242,7 +273,7 @@ export async function createStore({ url, authToken, verify, payer = null, payerF
     try { outcome = await transfer.send(); }
     catch (error) {
       // The network refused it, so it never landed: retry later, and give up after 3 refusals so one bad entry cannot block the queue.
-      if (error.rejected) { await run("UPDATE submissions SET status=CASE WHEN attempts>=2 THEN 'failed' ELSE 'queued' END, attempts=attempts+1, signature=NULL, last_valid_height=NULL, note=? WHERE id=?", [String(error.message).slice(0, 200), next.id]); await bump(); }
+      if (error.rejected) { await run("UPDATE submissions SET status=CASE WHEN attempts>=2 THEN 'failed' ELSE 'queued' END, note=CASE WHEN attempts>=2 THEN 'Solana refused this payment three times.' ELSE ? END, attempts=attempts+1, signature=NULL, last_valid_height=NULL WHERE id=?", [String(error.message).slice(0, 200), next.id]); await bump(); }
       log.error?.('Payout send failed:', error.message);
       return; // Otherwise left as 'sending'; reconcile() settles it from the signature.
     }

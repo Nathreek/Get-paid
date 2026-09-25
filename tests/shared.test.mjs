@@ -172,3 +172,42 @@ test('payout amounts can be fixed or custom tiers from the environment', async (
     assert.deepEqual((await store.state()).records.map(record => record.amountCents), [250, 250, 250]);
   } finally { store.close(); }
 });
+
+test('a post that no longer qualifies at payout time is rejected with a reason, and an X outage only delays it', async () => {
+  const { Rejection } = await import('../verify.mjs');
+  const payer = fakePayer();
+  let outcome = () => new Rejection('The post was deleted or made private before payout.');
+  const verify = async value => ({ tweetId: value.split('/').at(-1), author: value.split('/')[3], text: 'ok' });
+  let time = 1_000_000;
+  const store = await createStore({ url: ':memory:', verify, recheck: async () => { const result = outcome(); if (result) throw result; }, payerFor: () => payer, price: async () => 200, payoutsEnabled: true, payoutIntervalMs: 0, clock: () => time, log: quiet });
+  try {
+    await store.submit(post(1), wallets[0]);
+    await store.processPayouts();
+    let [row] = (await store.state()).records;
+    assert.equal(row.status, 'failed'); assert.equal(row.note, 'The post was deleted or made private before payout.'); assert.equal(payer.sent.length, 0);
+    // X unreachable: the entry waits, then pays once the post checks out.
+    outcome = () => new Error('X is down');
+    await store.submit(post(2), wallets[1]);
+    await store.processPayouts();
+    const second = async () => (await store.state()).records.find(record => record.post === post(2));
+    assert.equal((await second()).status, 'queued');
+    outcome = () => null; time += 60000;
+    await store.processPayouts();
+    assert.equal((await second()).status, 'sent'); assert.equal(payer.sent.length, 1);
+  } finally { store.close(); }
+});
+
+test('a payment the network keeps dropping is given up after 5 tries instead of cycling forever', async () => {
+  const signatures = [];
+  const payer = { ...fakePayer(), async prepare(to, lamports) { const signature = `sig-${randomUUID()}`; return { signature, lastValidBlockHeight: 100, send: async () => { signatures.push(signature); throw new Error('timed out'); } }; }, async status() { return 'expired'; } };
+  const verify = async value => ({ tweetId: value.split('/').at(-1), author: value.split('/')[3], text: 'ok' });
+  let time = 1_000_000;
+  const store = await createStore({ url: ':memory:', verify, payerFor: () => payer, price: async () => 200, payoutsEnabled: true, payoutIntervalMs: 0, clock: () => time++, log: quiet });
+  try {
+    await store.submit(post(1), wallets[0]);
+    for (let i = 0; i < 8; i++) await store.processPayouts();
+    const [row] = (await store.state()).records;
+    assert.equal(row.status, 'failed'); assert.equal(row.note, 'The network kept dropping this payment.');
+    assert.equal(signatures.length, 5);
+  } finally { store.close(); }
+});

@@ -43,7 +43,7 @@ function stats(){
   if(coinId!=='main'&&typeof snapshot.feePoolLamports==='number')$('#coin-pool').textContent=`Fee pool: ${sol(snapshot.feePoolLamports)}`;
 }
 function render(){
-  const key=JSON.stringify([snapshot.page,snapshot.total,Math.floor(Date.now()/60000),snapshot.records.map(record=>[record.id,record.status,record.amountCents])]);
+  const key=JSON.stringify([snapshot.page,snapshot.total,Math.floor(Date.now()/60000),snapshot.records.map(record=>[record.id,record.status,record.amountCents,record.note])]);
   $('#total-badge').textContent=snapshot.total;stats();
   if(key===renderKey)return;renderKey=key;
   const list=$('#reveal-list');list.replaceChildren();$('#empty-state').hidden=snapshot.total>0;
@@ -56,11 +56,12 @@ function render(){
     who.append(name,element('span','who-meta',`@${record.author} · ${ago(record.paidAt||record.createdAt)}`));
     const amount=element('div','payout-amount');
     if(record.status==='sent'){amount.append(...record.lamports?[element('strong','',`+${sol(record.lamports)}`),element('small','',formatUsd(record.amountCents))]:[element('strong','',formatUsd(record.amountCents)),element('small','','in SOL')]);amount.title='Paid in SOL';}
-    else{const [text,title]=badges[record.status]||[record.status,''];const badge=element('span',`reveal-state status-${record.status}`,text);badge.title=title;amount.append(badge);}
+    else{const [text,title]=badges[record.status]||[record.status,''];const badge=element('span',`reveal-state status-${record.status}`,text);badge.title=record.note||title;amount.append(badge);}
     head.append(avatar,who,amount);
     const foot=element('div','payout-foot'),wallet=link(`◎ ${shortWallet(record.wallet)}`,solscan(`account/${record.wallet}`),`View wallet ${record.wallet} on Solscan (opens in a new tab)`);wallet.title=record.wallet;
     foot.append(wallet,link('View post ↗',record.post,`View post from @${record.author} (opens in a new tab)`));
     if(record.status==='sent')foot.append(link('Solscan ↗',solscan(`tx/${record.signature}`),`View payment transaction to ${shortWallet(record.wallet)} (opens in a new tab)`));
+    if(record.status==='failed'&&record.note)foot.append(element('span','fail-note',record.note));
     card.append(head,tweetText(record.text),foot);list.append(card);
   }
 }

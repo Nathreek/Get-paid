@@ -164,3 +164,4 @@ a.who-name:hover{text-decoration:underline}
 .flow-payouts i{font-style:normal}.flow-payouts b{color:#fff;font-family:Manrope,sans-serif}
 @media(max-width:900px){.launch-promo{grid-template-columns:1fr;padding:24px}.header-actions{gap:10px}.nav-links a{padding:0 14px}}
 @media(max-width:700px){.launch-promo{padding:20px;border-radius:18px}.promo-actions .hero-button{flex:1;justify-content:center}.announce-pill{font-size:11px;text-align:left}}
+.fail-note{flex-basis:100%;color:#8f8f8f;font-style:italic}

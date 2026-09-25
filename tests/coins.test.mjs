@@ -108,6 +108,21 @@ test('many coins are paid at the same time, and coins waiting for fees never blo
   } finally { store.close(); }
 });
 
+test('viewers share one read of the page data, and any change shows up at once', async () => {
+  let time = 1_000_000;
+  const verify = async value => ({ tweetId: value.split('/').at(-1), author: value.split('/')[3], text: 'ok' });
+  const store = await createStore({ url: ':memory:', verify, price: null, clock: () => time, log: quiet });
+  try {
+    const first = await store.state();
+    assert.equal(await store.state(), first, 'a second viewer within 2 s gets the same answer');
+    await store.submit(post(1), wallets[0]);
+    assert.equal((await store.state()).total, 1, 'a new submission is visible immediately');
+    const again = await store.state();
+    time += 2000;
+    assert.notEqual(await store.state(), again, 'after 2 s the data is read again');
+  } finally { store.close(); }
+});
+
 test('coins only go live once confirmed, never share a wallet, and unfinished launches stay hidden', async () => {
   const store = await createStore({ url: ':memory:', verify: null, price: null, log: quiet });
   try {
