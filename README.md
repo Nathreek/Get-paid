@@ -40,6 +40,7 @@ Launched coin wallets are never reused. The database stores only their public ad
 ## Settings
 
 - `dist/config.js` — `ticker` (without `$`) and `coinAddress`. Submissions are refused until `ticker` is set.
+- When the coin launches, set its contract address live with `node scripts/coin.mjs set-ca <address>` (production database in `.env`). The site shows it within seconds, open pages included, and posts may mention the address instead of the ticker. No redeploy needed; it overrides `coinAddress` in `config.js`.
 - Environment variables — see `.env.example`. Locally, copy it to `.env`.
 
 ## Run locally

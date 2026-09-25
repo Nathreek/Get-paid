@@ -217,3 +217,18 @@ test('coin pages, the coin list and the launch API are served', async () => {
     assert.equal(launch.status, 503);
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); store.close(); }
 });
+
+test("the site coin's contract address can be set live, and posts are then checked against it", async () => {
+  const seen = [];
+  const verify = async (value, coin) => { seen.push(coin.coinAddress); return { tweetId: value.split('/').at(-1), author: value.split('/')[3], text: 'ok' }; };
+  const store = await createStore({ url: ':memory:', verify, mainCoin: { ticker: 'GETPAID', coinAddress: '' }, price: null, log: quiet });
+  try {
+    assert.equal((await store.state()).coin.coinAddress, '');
+    await assert.rejects(() => store.setMainCoinAddress('not-an-address'), error => error.status === 400);
+    assert.equal(await store.setMainCoinAddress(` ${MINT} `), MINT);
+    assert.equal((await store.state()).coin.coinAddress, MINT, 'visible straight away');
+    assert.equal((await store.coins()).coins[0].coinAddress, MINT);
+    await store.submit(post(1), wallets[0]);
+    assert.deepEqual(seen, [MINT], 'the post check accepts the CA as well as $GETPAID');
+  } finally { store.close(); }
+});

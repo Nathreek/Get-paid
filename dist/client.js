@@ -98,7 +98,7 @@ function buildMarquee(){
 function schedule(){clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(()=>refresh(),failures?Math.min(30000,5000*failures):4000+Math.random()*2000);}
 async function refresh(force=false){
   if(syncing){if(force)pendingRefresh=true;return;}syncing=true;const requestedPage=page;
-  try{const {response,data}=await request(`/api/state?page=${requestedPage}&coin=${coinId}`,{headers:!force&&etag?{'If-None-Match':etag}:{}});if(page!==requestedPage){pendingRefresh=true;return;}if(data){if(!coinReady)applyCoin(data.coin);snapshot=data;page=data.page;etag=response.headers.get('etag')||'';render();feature(data.latestPayout);}failures=0;connection('');}
+  try{const {response,data}=await request(`/api/state?page=${requestedPage}&coin=${coinId}`,{headers:!force&&etag?{'If-None-Match':etag}:{}});if(page!==requestedPage){pendingRefresh=true;return;}if(data){if(!coinReady)applyCoin(data.coin);else if(data.coin?.coinAddress&&data.coin.coinAddress!==coinAddress){coinAddress=data.coin.coinAddress;showAddress();}snapshot=data;page=data.page;etag=response.headers.get('etag')||'';render();feature(data.latestPayout);}failures=0;connection('');}
   catch(error){failures++;connection(error.status===404?'This coin is not on GET-PAID. If it was launched a moment ago, it appears within a minute.':'Connection interrupted. Retrying automatically.');}
   finally{syncing=false;if(pendingRefresh){pendingRefresh=false;void refresh(true);}else schedule();}
 }
@@ -119,6 +119,7 @@ $('#submission-form').addEventListener('submit',async event=>{
 for(const [id,error] of [['post-url','post-error'],['wallet','wallet-error']])$(`#${id}`).addEventListener('input',()=>{$(`#${id}`).removeAttribute('aria-invalid');$(`#${error}`).textContent='';$('#form-error').textContent='';});
 $('#previous-page').addEventListener('click',()=>{page=Math.max(0,page-1);etag='';refresh(true);});
 $('#next-page').addEventListener('click',()=>{page++;etag='';refresh(true);});
+function showAddress(){if(coinAddress){$('#coin-address').textContent=coinAddress;$('#contract-tag').hidden=true;$('#copy-address').hidden=false;$('#buy-coin-address').textContent=coinAddress;$('#buy-ca-status').hidden=true;$('#buy-copy-address').hidden=false;}}
 // Fills the page with the coin's ticker, address and payout wallet. The main page uses config.js; coin pages wait for the server.
 function applyCoin(coin){
   coinReady=true;
@@ -135,7 +136,7 @@ function applyCoin(coin){
     $('#coin-banner').hidden=false;$('#announce').hidden=true;
   }
   if(ticker)for(const node of document.querySelectorAll('.ticker'))node.textContent=`$${ticker}`;
-  if(coinAddress){$('#coin-address').textContent=coinAddress;$('#contract-tag').hidden=true;$('#copy-address').hidden=false;$('#buy-coin-address').textContent=coinAddress;$('#buy-ca-status').hidden=true;$('#buy-copy-address').hidden=false;}
+  showAddress();
   buildMarquee();
 }
 if(coinId==='main')applyCoin(null);

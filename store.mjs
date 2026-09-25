@@ -23,6 +23,7 @@ const FEE_POOL_TTL = 30000, CLAIM_EVERY = 5 * 60000, PRICE_TTL = 30000, READ_CAC
 const PARALLEL_COINS = 8, FUNDS_WAIT = 60000, CAP_WAIT = 10 * 60000;
 // How long a payout waits when X cannot be reached for its recheck; how many expired attempts before giving up.
 const RECHECK_WAIT = 60000, MAX_EXPIRED = 5;
+const MAIN_CA_KEY = 'main_coin_address';
 const payoutKey = coin => coin === MAIN_COIN ? 'next_payout_at' : `next_payout_at:${coin}`;
 
 const SCHEMA = [
@@ -80,9 +81,10 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     twitter: row.twitter || null, telegram: row.telegram || null, website: row.website || null,
     coinAddress: row.id, payoutWallet: row.payout_wallet, walletIndex: row.wallet_index, launched: true, launchedAt: row.launched_at,
   });
-  const mainInfo = () => ({ id: MAIN_COIN, ticker: mainCoin.ticker || '', name: mainCoin.name || 'GET-PAID', coinAddress: mainCoin.coinAddress || '', payoutWallet: mainCoin.payoutWallet || null, launched: false });
+  // The site's coin. Its contract address can be set live (scripts/coin.mjs set-ca) the moment it launches; config.js is the fallback.
+  const mainInfo = async () => ({ id: MAIN_COIN, ticker: mainCoin.ticker || '', name: mainCoin.name || 'GET-PAID', coinAddress: (await setting(MAIN_CA_KEY)) || mainCoin.coinAddress || '', payoutWallet: mainCoin.payoutWallet || null, launched: false });
   async function findCoin(id) {
-    if (id === MAIN_COIN) return mainInfo();
+    if (id === MAIN_COIN) return await mainInfo();
     const row = await one("SELECT * FROM coins WHERE id=? AND status='live'", [String(id)]);
     return row ? coinInfo(row) : null;
   }
@@ -153,7 +155,7 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
   async function readCoins() {
     const rows = await all("SELECT * FROM coins WHERE status='live' ORDER BY launched_at DESC LIMIT 500");
     const stats = new Map((await all("SELECT coin, sum(status='sent') AS paid, coalesce(sum(CASE WHEN status='sent' THEN lamports END),0) AS lamports, sum(status IN ('queued','sending')) AS queued FROM submissions GROUP BY coin")).map(row => [row.coin, row]));
-    const list = [mainInfo(), ...rows.map(coinInfo)];
+    const list = [await mainInfo(), ...rows.map(coinInfo)];
     return {
       cluster, revision: Number((await one("SELECT value FROM metadata WHERE key='revision'")).value),
       coins: list.map(coin => ({ ...publicCoin(coin), paidCount: Number(stats.get(coin.id)?.paid || 0), paidLamports: Number(stats.get(coin.id)?.lamports || 0), queued: Number(stats.get(coin.id)?.queued || 0) })),
@@ -188,6 +190,12 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     return Boolean(changed);
   }
   const setting = async key => (await one('SELECT value FROM metadata WHERE key=?', [key]))?.value ?? null;
+  async function setMainCoinAddress(address) {
+    const value = normalizeWallet(address);
+    await saveSetting(MAIN_CA_KEY, value);
+    await bump();
+    return value;
+  }
   const saveSetting = (key, value) => run('INSERT INTO metadata VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [key, String(value)]);
 
   // Settles payouts whose outcome was unknown (timeout or crash) using the saved signature.
@@ -303,5 +311,5 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     } finally { running = false; }
   }
 
-  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, hiddenCoins, setCoinStatus, setCoinHidden, setting, saveSetting, processPayouts, close: () => db.close() };
+  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, hiddenCoins, setCoinStatus, setCoinHidden, setMainCoinAddress, setting, saveSetting, processPayouts, close: () => db.close() };
 }
