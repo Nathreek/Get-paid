@@ -31,6 +31,7 @@ Launched coin wallets are never reused. The database stores only their public ad
 ## Safety
 
 - Nothing is sent until `PAYOUTS_ENABLED=true` and `PAYOUT_PRIVATE_KEY` is set. Use a dedicated hot wallet funded with only what you plan to pay out.
+- If the site's own coin is launched on pump.fun from the payout wallet, its creator rewards are collected into that wallet automatically whenever it runs low. Keep ~0.005 SOL in it for the network fee.
 - `MAX_DAILY_PAYOUT_USD` pauses payouts once the last 24 hours reach the cap. Payouts also pause if the wallet balance is too low.
 - Each transaction's signature is saved before it is broadcast. If a send times out or the server stops, the next run checks that signature on-chain and marks it paid, or requeues it once its blockhash has expired — it is never sent twice.
 - Submissions are rate-limited to 5 per minute per IP; launches to 3.

@@ -219,7 +219,7 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
 
   const claims = new Map();
   async function topUp(coin) {
-    if (!claimFees || !coin.launched || clock() - (claims.get(coin.id) || 0) < CLAIM_EVERY) return false;
+    if (!claimFees || clock() - (claims.get(coin.id) || 0) < CLAIM_EVERY) return false;
     claims.set(coin.id, clock());
     try { const claimed = await claimFees(coin); if (claimed) pools.delete(coin.id); return claimed; }
     catch (error) { log.error?.(`Fee claim for $${coin.ticker} failed:`, error.message); return false; }

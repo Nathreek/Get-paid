@@ -1,11 +1,12 @@
 // Builds the store (and the coin launcher) from environment variables. Shared by server.mjs (local/VPS) and api/ (Vercel).
 import { existsSync, mkdirSync } from 'node:fs';
+import { PublicKey } from '@solana/web3.js';
 import { fileURLToPath } from 'node:url';
 import { config } from './dist/config.js';
 import { createStore, MAIN_COIN, TIERS, TIER_SIZE } from './store.mjs';
 import { createVerifier, createRecheck } from './verify.mjs';
 import { createPayer, parseSecretKey, solPrice } from './payout.mjs';
-import { createLauncher, createPinata } from './launch.mjs';
+import { createFeeClaimer, createLauncher, createPinata } from './launch.mjs';
 import { parseMasterSeed } from './wallets.mjs';
 
 export async function createApp(env = process.env) {
@@ -21,6 +22,8 @@ export async function createApp(env = process.env) {
   if (payer) console.log(`Payout wallet: ${payer.address}`);
   const payoutsEnabled = env.PAYOUTS_ENABLED === 'true';
   if (payoutsEnabled && !payer) console.warn('PAYOUTS_ENABLED is true but PAYOUT_PRIVATE_KEY is missing; nothing will be sent.');
+  const treasuryKey = env.PAYOUT_PRIVATE_KEY ? parseSecretKey(env.PAYOUT_PRIVATE_KEY) : null;
+  const treasury = treasuryKey ? createFeeClaimer({ rpcUrl }) : null;
 
   // Launched coins: one wallet each, derived from MASTER_SEED. Without it, launching is switched off.
   const seed = env.MASTER_SEED ? parseMasterSeed(env.MASTER_SEED) : null;
@@ -43,12 +46,21 @@ export async function createApp(env = process.env) {
     recheck: createRecheck(),
     mainCoin: { ticker: config.ticker, coinAddress: config.coinAddress, payoutWallet: payer?.address || null },
     payerFor,
-    claimFees: coin => launcher.claimFees(coin.walletIndex),
-    // What a coin can still pay out: its wallet balance, plus unclaimed creator fees for launched coins.
+    // Tops a coin's wallet up from its pump.fun creator rewards. For the site's own coin that is the treasury
+    // (PAYOUT_PRIVATE_KEY): rewards it earned as the coin's creator, or its share if the dev set up fee sharing to it.
+    claimFees: async coin => {
+      if (coin.id !== MAIN_COIN) return launcher ? launcher.claimFees(coin.walletIndex) : false;
+      if (!treasury) return false;
+      const own = await treasury.claim(treasuryKey, 'the treasury');
+      const shared = coin.coinAddress ? await treasury.distribute(new PublicKey(coin.coinAddress), treasuryKey, `$${coin.ticker}`) : false;
+      return own || shared;
+    },
+    // What a coin can still pay out: its wallet balance plus its unclaimed creator rewards.
     feePool: async coin => {
       const wallet = payerFor(coin);
       if (!wallet) return null;
-      const [balance, unclaimed] = await Promise.all([wallet.balance(), coin.launched ? launcher.unclaimed(coin.walletIndex) : 0]);
+      const rewards = coin.id === MAIN_COIN ? treasury?.unclaimed(treasuryKey.publicKey) : launcher?.unclaimed(coin.walletIndex);
+      const [balance, unclaimed] = await Promise.all([wallet.balance(), rewards ?? 0]);
       return balance + unclaimed;
     },
     price: solPrice, payoutsEnabled,
@@ -63,7 +75,7 @@ export async function createApp(env = process.env) {
     launcher = createLauncher({
       rpcUrl, seed, store,
       upload: env.PINATA_JWT ? createPinata({ jwt: env.PINATA_JWT, gateway: env.PINATA_GATEWAY || undefined }) : null,
-      feePayer: env.PAYOUT_PRIVATE_KEY ? parseSecretKey(env.PAYOUT_PRIVATE_KEY) : null,
+      feePayer: treasuryKey,
     });
     if (env.PINATA_JWT) console.log(`Coin launches are on. Coin wallet #1: ${launcher.walletFor(1).publicKey.toBase58()}`);
     else console.warn('PINATA_JWT is missing: launched coins keep paying out, but new launches are off.');

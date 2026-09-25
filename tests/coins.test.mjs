@@ -232,3 +232,17 @@ test("the site coin's contract address can be set live, and posts are then check
     assert.deepEqual(seen, [MINT], 'the post check accepts the CA as well as $GETPAID');
   } finally { store.close(); }
 });
+
+test("the site coin's treasury collects its own pump.fun creator rewards when it runs low", async () => {
+  const treasury = fakePayer(0), claimed = [];
+  const verify = async value => ({ tweetId: value.split('/').at(-1), author: value.split('/')[3], text: '$GETPAID' });
+  const store = await createStore({ url: ':memory:', verify, mainCoin: { ticker: 'GETPAID' }, payerFor: coin => coin.id === 'main' ? treasury : null,
+    claimFees: async coin => { claimed.push(coin.id); treasury.balance = 1e12; return true; },
+    price: async () => 200, payoutsEnabled: true, payoutIntervalMs: 0, clock: () => 1_000_000, log: quiet });
+  try {
+    await store.submit(post(1), wallets[0]);
+    await store.processPayouts();
+    assert.deepEqual(claimed, ['main']);
+    assert.equal((await store.state()).records[0].status, 'sent');
+  } finally { store.close(); }
+});

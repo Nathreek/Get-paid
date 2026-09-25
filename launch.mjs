@@ -1,7 +1,7 @@
 // Coin launches on pump.fun. The launcher's wallet pays and signs; the coin's own GET-PAID wallet
 // (derived from MASTER_SEED) is set as creator, so every creator fee lands where only the server can spend it.
 import { AddressLookupTableProgram, ComputeBudgetProgram, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
-import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from '@pump-fun/pump-sdk';
+import { OnlinePumpSdk, PUMP_SDK, feeSharingConfigPda, getBuyTokenAmountFromSolAmount } from '@pump-fun/pump-sdk';
 import { ACCOUNT_SIZE, ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, createCloseAccountInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import BN from 'bn.js';
 import { normalizeWallet } from './dist/model.js';
@@ -186,15 +186,23 @@ export function createLauncher({ rpcUrl, seed, store, upload, feePayer = null, l
     }
   }
 
-  // Unclaimed creator fees on the bonding curve and PumpSwap, in lamports.
-  const unclaimed = async index => Number(await online.getCreatorVaultBalanceBothPrograms(walletFor(index).publicKey));
+  const claimer = createFeeClaimer({ rpcUrl, sponsor: feePayer, log });
+  const unclaimed = index => claimer.unclaimed(walletFor(index).publicKey);
+  const claimFees = index => claimer.claim(walletFor(index), `coin wallet #${index}`);
 
-  // Moves this coin's creator fees into its payout wallet. The main payout wallet pays the network fee when set,
-  // so a brand-new coin wallet with 0 SOL can still claim.
-  async function claimFees(index) {
-    const owner = walletFor(index), available = await unclaimed(index);
+  return { enabled: Boolean(upload), prepare, confirm, settlePending, claimFees, unclaimed, walletFor };
+}
+
+// Collects pump.fun creator rewards (bonding curve and PumpSwap) into the creator's own wallet. Used for every
+// launched coin's wallet and for the main treasury, if $GETPAID was launched from it. `sponsor` (the main payout
+// wallet) pays the network fee for a wallet too empty to pay its own, and is repaid in the same transaction.
+export function createFeeClaimer({ rpcUrl, sponsor = null, log = console }) {
+  const connection = new Connection(rpcUrl, 'confirmed'), online = new OnlinePumpSdk(connection);
+  const unclaimed = async owner => Number(await online.getCreatorVaultBalanceBothPrograms(owner));
+  async function claim(owner, label) {
+    const available = await unclaimed(owner.publicKey);
     if (available < MIN_CLAIM_LAMPORTS) return false;
-    const payer = !feePayer || await connection.getBalance(owner.publicKey) >= SELF_PAY_LAMPORTS ? owner : feePayer;
+    const payer = !sponsor || sponsor.publicKey.equals(owner.publicKey) || await connection.getBalance(owner.publicKey) >= SELF_PAY_LAMPORTS ? owner : sponsor;
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
     const transaction = await claimTransaction({ connection, online, owner: owner.publicKey, payer: payer.publicKey, available, blockhash, lastValidBlockHeight });
     if (!transaction) return false;
@@ -202,9 +210,24 @@ export function createLauncher({ rpcUrl, seed, store, upload, feePayer = null, l
     const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 });
     const result = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
     if (result.value.err) throw new Error('Fee claim failed on-chain.');
-    log.log?.(`Claimed creator fees for coin wallet #${index}: ${signature}`);
+    log.log?.(`Claimed creator fees for ${label}: ${signature}`);
     return true;
   }
-
-  return { enabled: Boolean(upload), prepare, confirm, settlePending, claimFees, unclaimed, walletFor };
+  // A coin whose dev set up pump.fun fee sharing pays its shareholders from a shared pot. Anyone may trigger the
+  // payout; `payer` covers the network fee and each shareholder (e.g. the treasury) receives plain SOL.
+  async function distribute(mint, payer, label) {
+    if (!await connection.getAccountInfo(feeSharingConfigPda(mint))) return false;
+    const { canDistribute, distributableFees } = await online.getMinimumDistributableFee(mint, payer.publicKey);
+    if (!canDistribute || Number(distributableFees) < MIN_CLAIM_LAMPORTS) return false;
+    const { instructions } = await online.buildDistributeCreatorFeesInstructions(mint, { payer: payer.publicKey });
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const transaction = new Transaction({ feePayer: payer.publicKey, blockhash, lastValidBlockHeight }).add(...instructions);
+    transaction.sign(payer);
+    const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 });
+    const result = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    if (result.value.err) throw new Error('Fee distribution failed on-chain.');
+    log.log?.(`Distributed shared creator fees for ${label}: ${signature}`);
+    return true;
+  }
+  return { unclaimed, claim, distribute };
 }
