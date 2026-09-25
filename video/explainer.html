@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GET-PAID Explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+:root{--bg:#0b0b0b;--panel:#151515;--panel2:#1b1b1b;--border:#2a2a2a;--text:#f2f2f2;--muted:#9c9c9c;--dim:#5d5d5d;--green:#14F195;--purple:#9945FF}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--bg)}
+.grid{position:absolute;inset:-80px;background-image:radial-gradient(rgba(255,255,255,.07) 1.4px,transparent 1.6px);background-size:44px 44px;mask-image:radial-gradient(ellipse 70% 70% at 65% 50%,#000 20%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 70% 70% at 65% 50%,#000 20%,transparent 75%)}
+.glow{position:absolute;width:1100px;height:1100px;left:780px;top:-10px;border-radius:50%;background:radial-gradient(circle,rgba(20,241,149,.13),transparent 62%);opacity:0}
+.vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55));pointer-events:none}
+.brand{position:absolute;left:150px;top:70px;display:flex;align-items:center;gap:14px;font-weight:800;font-size:26px;letter-spacing:.02em;opacity:0}
+.brand img{width:44px;height:44px;filter:invert(1)}
+.scene{position:absolute;inset:0;display:none}
+.copy{position:absolute;left:150px;top:50%;transform:translateY(-50%);width:640px}
+.eyebrow{font-size:20px;font-weight:600;letter-spacing:.18em;color:var(--muted);margin-bottom:26px;display:flex;align-items:center;gap:14px}
+.eyebrow b{color:var(--green);font-weight:600}
+h1{font-size:92px;line-height:1.02;letter-spacing:-.035em;font-weight:700}
+h1 .line{display:block}
+h1 .m{color:var(--muted)}
+.sub{margin-top:30px;font-size:29px;line-height:1.42;color:var(--muted);max-width:590px}
+.tk{color:var(--green);font-weight:600}
+.visual{position:absolute;left:900px;top:140px;width:880px;height:800px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:26px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+
+/* intro */
+.intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.intro img{width:210px;height:210px;border-radius:44px}
+.intro .word{margin-top:44px;font-size:120px;font-weight:800;letter-spacing:-.02em}
+.intro .tag{margin-top:18px;font-size:40px;font-weight:500;color:var(--muted)}
+.intro .tag span{color:var(--text)}
+
+/* tweet */
+.tweet{position:absolute;left:90px;top:170px;width:700px;padding:38px 42px}
+.thead{display:flex;align-items:center;gap:16px}
+.pfp{width:62px;height:62px;border-radius:50%;background:#232323;display:grid;place-items:center;font-size:34px;flex:none}
+.thead b{font-size:26px}
+.thead i{font-style:normal;color:var(--muted);font-size:22px}
+.thead .x{margin-left:auto;font-size:32px;color:var(--text)}
+.tbody{margin-top:26px;font-size:36px;line-height:1.35;min-height:146px;letter-spacing:-.01em}
+.caret{display:inline-block;width:3px;height:38px;background:var(--text);vertical-align:-6px;margin-left:2px}
+.tact{margin-top:28px;display:flex;gap:70px;color:var(--muted);font-size:24px}
+.tact span{display:flex;align-items:center;gap:12px}
+.tact svg{width:26px;height:26px}
+
+/* form */
+.form{position:absolute;left:90px;top:130px;width:700px;padding:44px}
+.form .ttl{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:30px}
+.lbl{font-size:20px;color:var(--muted);margin:0 0 12px}
+.inp{height:74px;border-radius:16px;background:#0f0f0f;border:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 22px;font-size:25px;font-family:'JetBrains Mono',monospace;margin-bottom:28px;white-space:nowrap;overflow:hidden}
+.inp .ic{color:var(--muted);font-family:'DM Sans';font-size:26px;width:24px;text-align:center}
+.inp.focus{border-color:#6a6a6a}
+.btn{height:78px;border-radius:16px;background:#fff;color:#0b0b0b;font-weight:700;font-size:28px;display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px}
+.spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(0,0,0,.2);border-top-color:#0b0b0b}
+.cursor{position:absolute;width:40px;height:40px;left:0;top:0}
+
+/* check */
+.mini{position:absolute;left:120px;top:60px;width:640px;padding:30px 34px;overflow:hidden}
+.mini .tbody{font-size:28px;min-height:0;margin-top:18px}
+.mini .pfp{width:50px;height:50px;font-size:28px}
+.scan{position:absolute;left:0;right:0;height:120px;background:linear-gradient(180deg,transparent,rgba(20,241,149,.16) 85%,rgba(20,241,149,.9) 99%,transparent);pointer-events:none}
+.checks{position:absolute;left:120px;top:370px;width:640px;display:flex;flex-direction:column;gap:16px}
+.chk{display:flex;align-items:center;gap:20px;padding:22px 28px;font-size:28px;border-radius:18px}
+.dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;border:3px solid #333}
+.dot svg{width:22px;height:22px}
+.ai{margin-left:auto;font-size:18px;font-weight:700;letter-spacing:.1em;padding:6px 12px;border-radius:8px;background:rgba(153,69,255,.18);color:#c9a2ff}
+.pill{display:inline-flex;align-items:center;gap:12px;padding:16px 28px;border-radius:999px;font-weight:700;font-size:26px}
+.pill.g{background:rgba(20,241,149,.12);color:var(--green);border:1px solid rgba(20,241,149,.4)}
+.pill.q{background:#1f1f1f;color:#cfcfcf;border:1px solid #333}
+.approved{position:absolute;left:120px;top:690px}
+
+/* queue */
+.room{position:absolute;left:70px;top:60px;width:740px;padding:36px 36px 26px}
+.room h3{font-size:32px;letter-spacing:-.02em;display:flex;align-items:center;gap:14px}
+.badge{font-size:20px;background:#262626;border-radius:999px;padding:4px 14px;color:#ddd}
+.room p{color:var(--muted);font-size:21px;margin:8px 0 22px}
+.row{display:flex;align-items:center;gap:18px;padding:18px 20px;border-radius:18px;background:#101010;border:1px solid #232323;margin-bottom:12px;height:92px}
+.row .pfp{width:54px;height:54px;font-size:28px}
+.row .who b{display:block;font-size:24px}
+.row .who i{font-style:normal;color:var(--muted);font-size:19px}
+.st{margin-left:auto;font-size:20px;font-weight:700;padding:10px 18px;border-radius:999px;white-space:nowrap}
+.st.q{background:#1f1f1f;color:#bdbdbd;border:1px solid #333}
+.st.p{background:rgba(20,241,149,.12);color:var(--green);border:1px solid rgba(20,241,149,.4)}
+
+/* pay */
+.node{position:absolute;width:250px;padding:30px 26px;text-align:center}
+.node .ico{width:86px;height:86px;border-radius:24px;margin:0 auto 18px;display:grid;place-items:center;background:#202020;border:1px solid #333}
+.node .ico svg{width:44px;height:44px}
+.node b{display:block;font-size:26px}
+.node code{display:block;margin-top:8px;font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:19px}
+.coin{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;background:linear-gradient(135deg,#14F195,#9945FF);display:grid;place-items:center;box-shadow:0 0 50px rgba(20,241,149,.55)}
+.coin svg{width:48px;height:48px}
+.ring{position:absolute;border-radius:50%;border:3px solid var(--green)}
+.notif{position:absolute;left:175px;top:560px;width:530px;padding:24px 28px;display:flex;align-items:center;gap:18px}
+.notif b{font-size:26px;display:block}.notif i{font-style:normal;color:var(--muted);font-size:20px}
+.notif strong{margin-left:auto;color:var(--green);font-size:36px;font-family:'JetBrains Mono',monospace;font-weight:500}
+svg.path{position:absolute;left:0;top:0;overflow:visible}
+
+/* tx */
+.tx{position:absolute;left:90px;top:80px;width:700px;padding:38px 40px}
+.tx .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.tx .hd b{font-size:30px;letter-spacing:-.02em}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-top:1px solid #242424;font-size:23px}
+.kv span{color:var(--muted)}
+.kv code{font-family:'JetBrains Mono',monospace;font-size:22px}
+.kv .ok{color:var(--green);font-weight:700;display:flex;align-items:center;gap:10px}
+.solscan{margin-top:24px;height:72px;border-radius:16px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;gap:12px;font-size:25px;font-weight:600}
+
+/* safe */
+.tiles{position:absolute;left:60px;top:120px;width:780px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.tile{padding:34px 32px;height:250px}
+.tile .ti{width:64px;height:64px;border-radius:18px;background:rgba(20,241,149,.1);border:1px solid rgba(20,241,149,.35);display:grid;place-items:center;margin-bottom:26px}
+.tile .ti svg{width:32px;height:32px}
+.tile b{font-size:29px;display:block;letter-spacing:-.01em}
+.tile p{color:var(--muted);font-size:21px;margin-top:10px;line-height:1.4}
+
+/* cta */
+.qr{position:absolute;left:250px;top:120px;width:400px;padding:34px;background:#fff;border-radius:34px;text-align:center;color:#0b0b0b;box-shadow:0 0 120px rgba(20,241,149,.25)}
+.qr img{width:332px;height:332px;display:block}
+.qr b{display:block;margin-top:22px;font-size:36px;letter-spacing:-.02em}
+.url{font-family:'JetBrains Mono',monospace;color:var(--text)}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="grid" id="grid"></div>
+  <div class="glow" id="glow"></div>
+  <div class="brand" id="brand"><img src="../dist/assets/gp-monogram.png" alt="">GET-PAID</div>
+
+  <!-- 1 intro -->
+  <section class="scene" id="s1">
+    <div class="intro">
+      <img id="i-logo" src="../dist/assets/gp-monogram.png" alt="">
+      <div class="word" id="i-word">GET-PAID</div>
+      <div class="tag" id="i-tag"><span>Shill the coin.</span> Get paid in SOL.</div>
+    </div>
+  </section>
+
+  <!-- 2 post -->
+  <section class="scene" id="s2">
+    <div class="copy">
+      <div class="eyebrow"><b>01</b> POST</div>
+      <h1><span class="line">Post about</span><span class="line tk">$GETPAID</span><span class="line">on X.</span></h1>
+      <p class="sub">Write a public post in your own words that talks up the coin.</p>
+    </div>
+    <div class="visual">
+      <div class="card tweet" id="tw">
+        <div class="thead"><div class="pfp">🐸</div><div><b>You</b><br><i>@you · now</i></div><span class="x">𝕏</span></div>
+        <div class="tbody" id="tw-body"></div>
+        <div class="tact">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><em id="c1">0</em></span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg><em id="c2">0</em></span>
+          <span id="like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.3C1 8 3.4 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.6 0 6 3.5 4.5 7.2C19.5 16.4 12 21 12 21z"/></svg><em id="c3">0</em></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 submit -->
+  <section class="scene" id="s3">
+    <div class="copy">
+      <div class="eyebrow"><b>02</b> SUBMIT</div>
+      <h1><span class="line">Paste the link.</span><span class="line m">Drop your wallet.</span></h1>
+      <p class="sub">Submit your post and the Solana wallet you want to be paid to.</p>
+    </div>
+    <div class="visual">
+      <div class="card form" id="fm">
+        <div class="ttl">Post it. Paste it. Get paid.</div>
+        <div class="lbl">Twitter / X post URL</div>
+        <div class="inp" id="in1"><span class="ic">↗</span><span id="in1t"></span></div>
+        <div class="lbl">Your Solana wallet address</div>
+        <div class="inp" id="in2"><span class="ic">◎</span><span id="in2t"></span></div>
+        <div class="btn" id="btn"><span id="btnt">Check my post ↗</span></div>
+      </div>
+      <svg class="cursor" id="cur" viewBox="0 0 24 24"><path d="M4 2l16 10-7 1.5L9.5 21z" fill="#fff" stroke="#0b0b0b" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    </div>
+  </section>
+
+  <!-- 4 check -->
+  <section class="scene" id="s4">
+    <div class="copy">
+      <div class="eyebrow"><b>03</b> CHECK</div>
+      <h1><span class="line">Our bot</span><span class="line">checks it.</span></h1>
+      <p class="sub">It reads your post, confirms it mentions <span class="tk">$GETPAID</span>, and uses AI to make sure it talks the coin up.</p>
+    </div>
+    <div class="visual">
+      <div class="card mini" id="mn">
+        <div class="thead"><div class="pfp">🐸</div><div><b>You</b><br><i>@you · now</i></div><span class="x">𝕏</span></div>
+        <div class="tbody">Loving <span class="tk">$GETPAID</span> 🚀 early and building. This one’s going places.</div>
+        <div class="scan" id="scan"></div>
+      </div>
+      <div class="checks">
+        <div class="card chk" id="k1"><div class="dot"></div>Post is public</div>
+        <div class="card chk" id="k2"><div class="dot"></div>Mentions <span class="tk">$GETPAID</span></div>
+        <div class="card chk" id="k3"><div class="dot"></div>Positive about the coin<span class="ai">AI</span></div>
+      </div>
+      <div class="approved" id="ap"><span class="pill g">✓ Approved · queued</span></div>
+    </div>
+  </section>
+
+  <!-- 5 queue -->
+  <section class="scene" id="s5">
+    <div class="copy">
+      <div class="eyebrow"><b>04</b> QUEUE</div>
+      <h1><span class="line">Approved posts</span><span class="line">get paid</span><span class="line m">in order.</span></h1>
+      <p class="sub">Oldest first, one after another. Each post, wallet and X account is rewarded once.</p>
+    </div>
+    <div class="visual">
+      <div class="card room" id="rm">
+        <h3>The reveal room <span class="badge" id="rbadge">3</span></h3>
+        <p>Every approved post and its payout, live.</p>
+        <div id="rows"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 paid -->
+  <section class="scene" id="s6">
+    <div class="copy">
+      <div class="eyebrow"><b>05</b> PAYOUT</div>
+      <h1><span class="line">Paid in SOL.</span><span class="line m">Automatically.</span></h1>
+      <p class="sub">Sent straight to your wallet at the live SOL price. Nothing to claim.</p>
+    </div>
+    <div class="visual">
+      <svg class="path" width="880" height="800"><path id="arc" d="M 180 330 Q 440 90 700 330" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round"/></svg>
+      <div class="card node" id="n1" style="left:55px;top:230px"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#f2f2f2" stroke-width="1.8"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg></div><b>Treasury</b><code>LCpc…PYwjm</code></div>
+      <div class="card node" id="n2" style="left:575px;top:230px"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg></div><b>Your wallet</b><code>7xKX…gAsU</code></div>
+      <div class="ring" id="ring"></div>
+      <div class="coin" id="coin"><svg viewBox="0 0 24 24" fill="#0b0b0b"><path d="M6 6h14l-2.5 2.5H3.5zM3.5 10.75h14L20 13.25H6zM6 15.5h14L17.5 18H3.5z"/></svg></div>
+      <div class="card notif" id="nt"><div class="pfp">🐸</div><div><b>You</b><i>just now</i></div><strong id="amt">+0.0000 SOL</strong></div>
+    </div>
+  </section>
+
+  <!-- 7 public -->
+  <section class="scene" id="s7">
+    <div class="copy">
+      <div class="eyebrow"><b>06</b> PROOF</div>
+      <h1><span class="line">Every payout</span><span class="line">is public.</span></h1>
+      <p class="sub">Each payment links to its on-chain transaction on Solscan. Check it yourself.</p>
+    </div>
+    <div class="visual">
+      <div class="card tx" id="tx">
+        <div class="hd"><b>Transaction</b><span class="pill g" style="font-size:20px;padding:10px 18px">✓ Finalized</span></div>
+        <div class="kv" id="kv1"><span>Signature</span><code id="sig"></code></div>
+        <div class="kv" id="kv2"><span>From</span><code>LCpc…PYwjm <em style="font-style:normal;color:var(--muted);font-family:'DM Sans'">(treasury)</em></code></div>
+        <div class="kv" id="kv3"><span>To</span><code>7xKX…gAsU</code></div>
+        <div class="kv" id="kv4"><span>Amount</span><code style="color:var(--green)">0.05 SOL</code></div>
+        <div class="kv" id="kv5"><span>Status</span><span class="ok">✓ Success</span></div>
+        <div class="solscan" id="ss">View on Solscan ↗</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 safe -->
+  <section class="scene" id="s8">
+    <div class="copy">
+      <div class="eyebrow"><b>07</b> SAFETY</div>
+      <h1><span class="line">Built to</span><span class="line">pay fairly.</span></h1>
+      <p class="sub">Spam is limited, payouts are capped, and no one is ever paid twice.</p>
+    </div>
+    <div class="visual">
+      <div class="tiles">
+        <div class="card tile" id="t1"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div><b>AI-checked posts</b><p>Only real posts that back the coin get approved.</p></div>
+        <div class="card tile" id="t2"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></div><b>One reward each</b><p>Per post, per wallet, per X account.</p></div>
+        <div class="card tile" id="t3"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><b>Daily cap</b><p>Payouts pause once the daily limit is reached.</p></div>
+        <div class="card tile" id="t4"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="#14F195" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><b>Never sent twice</b><p>Every send is checked on-chain before retrying.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 cta -->
+  <section class="scene" id="s9">
+    <div class="copy">
+      <div class="eyebrow"><b>●</b> LIVE NOW</div>
+      <h1><span class="line">Go get paid.</span></h1>
+      <p class="sub">Post about <span class="tk">$GETPAID</span>, paste the link, and get paid in SOL at <span class="url">get-paid.xyz</span></p>
+    </div>
+    <div class="visual">
+      <div class="qr" id="qr"><img src="qr.svg" alt=""><b>get-paid.xyz</b></div>
+    </div>
+  </section>
+
+  <div class="vignette"></div>
+  <div id="fade"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const pr = (t, a, b) => cl((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, k) => a + (b - a) * k;
+
+function appear(el, t, at, dur = .7, dy = 30, blur = 10) {
+  const k = eo(pr(t, at, at + dur));
+  el.style.opacity = k;
+  el.style.transform = `translateY(${(1 - k) * dy}px)`;
+  el.style.filter = k < 1 ? `blur(${(1 - k) * blur}px)` : 'none';
+  return k;
+}
+function pop(el, t, at, dur = .55, base = '') {
+  const x = pr(t, at, at + dur), k = back(x);
+  el.style.opacity = cl(x * 2.5);
+  el.style.transform = `${base} scale(${lerp(.6, 1, k)})`;
+  return x;
+}
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#0b0b0b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const caret = (t, typing) => (typing || Math.floor(t * 2.4) % 2 === 0) ? '<span class="caret"></span>' : '<span class="caret" style="opacity:0"></span>';
+
+function typed(segments, n) {
+  let out = '', left = n;
+  for (const [text, cls] of segments) {
+    const chars = Array.from(text), take = chars.slice(0, Math.max(0, left)).join('');
+    left -= chars.length;
+    if (take) out += cls ? `<span class="${cls}">${take}</span>` : take;
+    if (left <= 0) break;
+  }
+  return out;
+}
+const TWEET = [['Loving ', ''], ['$GETPAID', 'tk'], [' 🚀 early and building. This one’s going places.', '']];
+const TWEET_LEN = TWEET.reduce((s, [x]) => s + Array.from(x).length, 0);
+
+// Scenes: [id, start, end]
+const S = [['s1', 0, 5.2], ['s2', 5.2, 12.2], ['s3', 12.2, 19.4], ['s4', 19.4, 27], ['s5', 27, 34.2], ['s6', 34.2, 41.4], ['s7', 41.4, 48.4], ['s8', 48.4, 54.6], ['s9', 54.6, 62]];
+const DURATION = 62;
+
+function copyIn(sc, t) {
+  const eb = sc.querySelector('.eyebrow'), lines = sc.querySelectorAll('h1 .line'), sub = sc.querySelector('.sub');
+  if (eb) appear(eb, t, .1, .6, 16);
+  lines.forEach((l, i) => appear(l, t, .2 + i * .13, .75, 36, 14));
+  if (sub) appear(sub, t, .45 + lines.length * .13, .75, 20);
+}
+
+const QUEUE = [
+  ['🦊', '@solmaxi', '12m ago'], ['🐳', '@whalewatch', '9m ago'], ['🐱', '@degen_cat', '6m ago'], ['🐸', '@you', 'just now']
+];
+$('rows').innerHTML = QUEUE.map(([p, n, w], i) => `<div class="row" id="r${i}"><div class="pfp">${p}</div><div class="who"><b>${n}</b><i>${w}</i></div><span class="st q" id="rs${i}">Approved · queued</span></div>`).join('');
+
+const R = {
+  s1(t) {
+    const k = pop($('i-logo'), t, .2, .9);
+    $('i-logo').style.filter = `invert(1) blur(${(1 - cl(k * 1.4)) * 12}px)`;
+    appear($('i-word'), t, .9, .8, 30, 16);
+    appear($('i-tag'), t, 1.5, .8, 20);
+  },
+  s2(t) {
+    appear($('tw'), t, .5, .8, 50);
+    const n = Math.round(lerp(0, TWEET_LEN, pr(t, 1.4, 4.0)));
+    $('tw-body').innerHTML = typed(TWEET, n) + (t < 4.6 ? caret(t, n < TWEET_LEN && t > 1.4) : '');
+    const c = eo(pr(t, 4.4, 6.2));
+    $('c1').textContent = Math.round(c * 42); $('c2').textContent = Math.round(c * 118); $('c3').textContent = Math.round(c * 764);
+    const liked = t > 4.6;
+    $('like').style.color = liked ? '#f91880' : '';
+    $('like').querySelector('svg').setAttribute('fill', liked ? '#f91880' : 'none');
+    $('like').style.transform = `scale(${liked ? lerp(1.35, 1, eo(pr(t, 4.6, 5))) : 1})`;
+  },
+  s3(t) {
+    appear($('fm'), t, .4, .8, 50);
+    const url = 'https://x.com/you/status/1839…', wal = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
+    const a = Math.round(lerp(0, url.length, pr(t, 1.3, 2.6))), b = Math.round(lerp(0, wal.length, pr(t, 3.0, 4.3)));
+    $('in1t').innerHTML = url.slice(0, a) + (t > 1.1 && t < 2.9 ? caret(t, t < 2.6) : '');
+    $('in2t').innerHTML = wal.slice(0, b) + (t > 2.9 && t < 4.6 ? caret(t, t < 4.3) : '');
+    $('in1').classList.toggle('focus', t > 1.1 && t < 2.9);
+    $('in2').classList.toggle('focus', t > 2.9 && t < 4.6);
+    // cursor glides to the button and clicks
+    const m = eio(pr(t, 4.4, 5.3));
+    const cx = lerp(820, 460, m), cy = lerp(720, 600, m);
+    const press = t > 5.35 && t < 5.6;
+    $('cur').style.opacity = pr(t, 4.2, 4.5) * (1 - pr(t, 6.4, 6.7));
+    $('cur').style.transform = `translate(${cx}px,${cy}px) scale(${press ? .85 : 1})`;
+    $('btn').style.transform = `scale(${press ? .96 : 1})`;
+    if (t > 5.5) {
+      $('btnt').innerHTML = `<span style="display:flex;align-items:center;gap:14px"><span class="spin" style="transform:rotate(${t * 520}deg)"></span>Checking…</span>`;
+    } else $('btnt').textContent = 'Check my post ↗';
+  },
+  s4(t) {
+    appear($('mn'), t, .3, .7, 40);
+    const sc = pr(t, 1.0, 2.6);
+    $('scan').style.top = lerp(-120, 250, eio(sc)) + 'px';
+    $('scan').style.opacity = sc > 0 && sc < 1 ? 1 : 0;
+    [['k1', 2.3], ['k2', 3.1], ['k3', 3.9]].forEach(([id, at]) => {
+      const el = $(id); appear(el, t, at - .5, .5, 20, 6);
+      const dot = el.querySelector('.dot'), done = t > at + .35;
+      dot.style.background = done ? 'var(--green)' : 'transparent';
+      dot.style.borderColor = done ? 'var(--green)' : '#333';
+      dot.style.borderTopColor = done ? 'var(--green)' : '#9c9c9c';
+      dot.style.transform = done ? `scale(${lerp(1.3, 1, eo(pr(t, at + .35, at + .7)))})` : `rotate(${t * 480}deg)`;
+      dot.innerHTML = done ? CHECK : '';
+      el.style.borderColor = done ? 'rgba(20,241,149,.35)' : '';
+    });
+    pop($('ap'), t, 4.9, .6);
+    $('glow').style.opacity = Math.max(+$('glow').style.opacity || 0, .6 * eo(pr(t, 4.9, 5.8)));
+  },
+  s5(t) {
+    appear($('rm'), t, .3, .8, 50);
+    [0, 1, 2].forEach(i => appear($('r' + i), t, .7 + i * .12, .5, 20, 4));
+    const you = $('r3'), k = eo(pr(t, 1.5, 2.2));
+    you.style.opacity = k; you.style.transform = `translateX(${(1 - k) * 120}px)`;
+    you.style.borderColor = t > 1.5 ? `rgba(20,241,149,${.5 * (1 - pr(t, 2.2, 3.5)) + .15})` : '';
+    $('rbadge').textContent = t > 1.8 ? 4 : 3;
+    [2.9, 3.6, 4.3, 5.2].forEach((at, i) => {
+      const s = $('rs' + i), paid = t > at;
+      s.className = 'st ' + (paid ? 'p' : 'q');
+      s.textContent = paid ? `Paid · ${['0.04', '0.05', '0.05', '0.05'][i]} SOL ↗` : 'Approved · queued';
+      s.style.transform = `scale(${paid ? lerp(1.18, 1, eo(pr(t, at, at + .35))) : 1})`;
+    });
+    you.style.boxShadow = t > 5.2 ? `0 0 ${50 * (1 - pr(t, 5.2, 6.4)) + 10}px rgba(20,241,149,.25)` : '';
+  },
+  s6(t) {
+    appear($('n1'), t, .3, .7, 40); appear($('n2'), t, .5, .7, 40);
+    const arc = $('arc'), L = arc.getTotalLength();
+    arc.style.opacity = pr(t, .6, 1.1);
+    const f = eio(pr(t, 1.4, 3.0)), pt = arc.getPointAtLength(L * f);
+    const coin = $('coin');
+    coin.style.left = pt.x + 'px'; coin.style.top = pt.y + 'px';
+    const cs = t < 1.4 ? back(pr(t, 1.0, 1.4)) : (t > 3.0 ? 1 - eo(pr(t, 3.0, 3.25)) : 1);
+    coin.style.opacity = t > 1.0 && t < 3.25 ? 1 : 0;
+    coin.style.transform = `scale(${cs}) rotate(${f * 360}deg)`;
+    const r = pr(t, 3.0, 4.0), ring = $('ring');
+    const sz = lerp(120, 420, eo(r));
+    Object.assign(ring.style, { width: sz + 'px', height: sz + 'px', left: 700 - sz / 2 + 'px', top: 330 - sz / 2 + 'px', opacity: r > 0 && r < 1 ? 1 - r : 0 });
+    $('n2').style.borderColor = t > 3 ? `rgba(20,241,149,${lerp(.9, .35, pr(t, 3, 4.5))})` : '';
+    $('n2').style.boxShadow = t > 3 ? `0 0 ${lerp(80, 30, pr(t, 3, 4.5))}px rgba(20,241,149,.25)` : '';
+    appear($('nt'), t, 3.2, .7, 40);
+    $('amt').textContent = '+' + (0.05 * eo(pr(t, 3.3, 4.6))).toFixed(4) + ' SOL';
+    $('glow').style.opacity = .35 + .5 * eo(pr(t, 3, 3.6)) * (1 - pr(t, 3.6, 6));
+  },
+  s7(t) {
+    appear($('tx'), t, .3, .8, 50);
+    const sig = '5KtPn1LGuxhFiwjxErkxTb3XwEHy…';
+    $('sig').textContent = sig.slice(0, Math.round(lerp(0, sig.length, pr(t, 1.0, 2.2))));
+    ['kv2', 'kv3', 'kv4', 'kv5'].forEach((id, i) => appear($(id), t, 1.6 + i * .3, .5, 14, 4));
+    appear($('ss'), t, 3.0, .5, 14, 4);
+    const h = pr(t, 4.2, 4.6) * (1 - pr(t, 5.6, 6.2));
+    $('ss').style.background = `rgba(255,255,255,${h})`;
+    $('ss').style.color = h > .5 ? '#0b0b0b' : '';
+  },
+  s8(t) {
+    ['t1', 't2', 't3', 't4'].forEach((id, i) => appear($(id), t, .9 + i * .28, .7, 40, 8));
+  },
+  s9(t) {
+    const x = pr(t, .7, 1.5);
+    $('qr').style.opacity = cl(x * 2);
+    $('qr').style.transform = `scale(${lerp(.75, 1, back(x))}) rotate(${(1 - eo(x)) * -6}deg)`;
+    $('glow').style.opacity = .7 * eo(pr(t, .5, 1.8));
+  }
+};
+
+window.DURATION = DURATION;
+window.render = T => {
+  $('grid').style.transform = `translate(${-(T * 6) % 44}px,${-(T * 3) % 44}px)`;
+  $('glow').style.opacity = 0;
+  const b = pr(T, 5.2, 6.0);
+  $('brand').style.opacity = b;
+  for (const [id, s, e] of S) {
+    const sc = $(id), on = T >= s && T < e;
+    sc.style.display = on ? 'block' : 'none';
+    if (!on) continue;
+    const t = T - s;
+    if (id !== 's1') copyIn(sc, t);
+    R[id](t);
+    const out = id === 's9' ? 0 : eio(pr(T, e - .55, e));
+    sc.style.opacity = 1 - out;
+    sc.style.filter = out > 0 ? `blur(${out * 14}px)` : 'none';
+    sc.style.transform = `scale(${1 + out * .03})`;
+  }
+  $('fade').style.opacity = pr(T, DURATION - .8, DURATION);
+};
+
+if (!location.search.includes('render')) {
+  const t0 = performance.now();
+  const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  document.fonts.ready.then(loop);
+}
+</script>
+</body>
+</html>

@@ -3,7 +3,8 @@ import { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PE
 import bs58 from 'bs58';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const FEE_RESERVE = 10000;
+// Left in the wallet after every payout: the network fee plus the rent minimum, since a balance below it cannot be left behind.
+const FEE_RESERVE = 900_000;
 
 export function parseSecretKey(value) {
   const text = String(value || '').trim();
@@ -30,10 +31,12 @@ export async function solPrice(fetcher = fetch) {
 
 export const lamportsFor = (cents, price) => Math.round(cents / 100 / price * LAMPORTS_PER_SOL);
 
-export function createPayer({ rpcUrl, secretKey }) {
-  const keypair = parseSecretKey(secretKey), connection = new Connection(rpcUrl, 'confirmed');
+// Takes the secret key from the environment, or an already derived keypair (a launched coin's wallet).
+export function createPayer({ rpcUrl, secretKey, keypair = parseSecretKey(secretKey) }) {
+  const connection = new Connection(rpcUrl, 'confirmed');
   return {
     address: keypair.publicKey.toBase58(),
+    balance: () => connection.getBalance(keypair.publicKey),
     async canAfford(lamports) { return await connection.getBalance(keypair.publicKey) >= lamports + FEE_RESERVE; },
     // Signs first so the signature can be saved before broadcasting; a crash can then be reconciled without paying twice.
     async prepare(to, lamports) {

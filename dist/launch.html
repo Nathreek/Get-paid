@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="Launch a coin on pump.fun through GET-PAID. Its creator fees automatically pay the people who shill it.">
+  <title>Launch a coin · GET-PAID</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='white'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='bold' letter-spacing='-2' fill='black'%3EGP%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css"><script type="module" src="/launch.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="GP — GET-PAID home"><img class="gp-logo" src="/assets/gp-monogram.png" width="44" height="44" alt="GP"><span class="brand-name">GET-PAID</span></a>
+      <nav class="header-actions" aria-label="Main navigation">
+        <div class="nav-links"><a href="/coins">Coins</a><a href="/launch" aria-current="page"><span class="new-tag">NEW</span>Launch a coin</a></div>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="page-intro" aria-labelledby="launch-title">
+        <h1 id="launch-title">Launch a coin.<br><span>Its fees pay its shillers.</span></h1>
+        <p>Your coin goes live on pump.fun. Every creator fee it earns goes to its own GET-PAID wallet and is paid out, in SOL, to the people who post about it on X.</p>
+      </section>
+      <div class="launch-layout">
+        <section class="panel submit-panel" aria-labelledby="form-title">
+          <h2 id="form-title">Your coin</h2>
+          <p class="description">Everything here is public and permanent once the coin is launched.</p>
+          <form id="launch-form" class="launch-form" novalidate>
+            <div class="field">
+              <label for="image">Image</label>
+              <label class="image-drop" for="image"><span class="placeholder" id="image-preview" aria-hidden="true">＋</span><span id="image-label">PNG, JPG, GIF or WebP, up to 2 MB. Square works best.</span><input id="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required></label>
+            </div>
+            <div class="two-col">
+              <div class="field"><label for="name">Name</label><div class="input-wrap"><input id="name" maxlength="32" placeholder="Get Paid" required autocomplete="off"></div></div>
+              <div class="field"><label for="symbol">Ticker</label><div class="input-wrap"><span aria-hidden="true">$</span><input id="symbol" maxlength="10" placeholder="GETPAID" required autocomplete="off" autocapitalize="characters" spellcheck="false"></div></div>
+            </div>
+            <div class="field"><label for="description">Description <span class="muted">(optional)</span></label><textarea id="description" maxlength="500" placeholder="What is this coin about?"></textarea></div>
+            <div class="two-col">
+              <div class="field"><label for="twitter">X link <span class="muted">(optional)</span></label><div class="input-wrap"><input id="twitter" type="url" placeholder="https://x.com/yourcoin"></div></div>
+              <div class="field"><label for="telegram">Telegram <span class="muted">(optional)</span></label><div class="input-wrap"><input id="telegram" type="url" placeholder="https://t.me/yourcoin"></div></div>
+            </div>
+            <div class="two-col">
+              <div class="field"><label for="website">Website <span class="muted">(optional)</span></label><div class="input-wrap"><input id="website" type="url" placeholder="https://"></div></div>
+              <div class="field"><label for="dev-buy">Your first buy <span class="muted">(SOL, optional)</span></label><div class="input-wrap"><span aria-hidden="true">◎</span><input id="dev-buy" type="number" min="0" max="50" step="0.01" placeholder="0" inputmode="decimal"></div></div>
+            </div>
+            <div class="wallet-row"><span id="wallet-status">Connect the wallet that pays for the launch.</span><span id="wallet-buttons"></span></div>
+            <button class="primary-button" type="submit" id="launch-button">Launch on pump.fun <span aria-hidden="true">↗</span></button>
+            <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+            <p class="form-error" id="form-error" role="alert"></p>
+          </form>
+        </section>
+        <aside class="panel" aria-labelledby="how-launch-title">
+          <h2 id="how-launch-title">How it works</h2>
+          <p class="description">A normal pump.fun coin, with its creator fees locked to its shillers.</p>
+          <ol class="launch-steps">
+            <li><span><strong>You launch it.</strong> Your wallet signs and pays the launch, plus your first buy if you add one. The coin appears on pump.fun right away.</span></li>
+            <li><span><strong>Its fees get a wallet.</strong> GET-PAID sets the coin's creator to a payout wallet made just for this coin. Nobody can move its fees anywhere else.</span></li>
+            <li><span><strong>People shill it.</strong> The coin gets its own page here. People post about it on X, and the bot checks each post mentions it and talks it up.</span></li>
+            <li><span><strong>Fees pay them.</strong> As the coin trades, its creator fees pay approved posts in SOL, oldest first. Every payout is public on Solscan.</span></li>
+          </ol>
+          <p class="launch-note">You do not receive the coin's creator fees yourself: they all go to the people who shill it. You keep any coins from your first buy.</p>
+        </aside>
+      </div>
+    </main>
+    <footer><span class="footer-brand">GET-PAID</span></footer>
+  </div>
+</body>
+</html>

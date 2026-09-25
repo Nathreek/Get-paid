@@ -13,12 +13,25 @@ By default, amounts rise from $5 to $30 across the first 30 payouts, then stay a
 
 These are the defaults. Set `PAYOUT_FIXED_USD` to pay everyone the same amount, or change `PAYOUT_TIERS` / `PAYOUT_TIER_SIZE` (see `.env.example`). Amounts never decrease. Each post, wallet and X account can be rewarded once (`MAX_PAYOUTS_PER_ACCOUNT`).
 
+## Coin launches
+
+Anyone can launch a coin on pump.fun from `/launch`. Each launched coin gets its own shill campaign, paid from its own creator fees.
+
+1. **Launch.** The launcher fills in the name, ticker, image and links, and optionally a first buy. The image and metadata go to IPFS (Pinata), and the server builds the pump.fun `create_v2` transaction. The launcher's wallet signs and pays for it.
+2. **Fees are locked to the coin.** The coin's creator is a payout wallet made for that coin (wallet #i, derived from `MASTER_SEED`), not the launcher. Every creator fee goes to that wallet, and only the server holds its key. The mint key signs the transaction on the server and is then thrown away.
+3. **Go live.** Once the bonding curve exists on-chain with that wallet as creator, the coin is listed at `/coins` and gets its own page at `/coin/<mint>`. Launches whose tab was closed before confirming are settled from the chain; ones that never land are marked abandoned after 15 minutes.
+4. **Shill and pay.** Coin pages work like the main page, scoped to that coin: posts must mention its ticker or address, and each coin has its own queue, reveal room, totals, daily cap and one-reward-per-account limit. Payouts come from the coin's wallet. When it runs low, the server collects the coin's creator fees from pump.fun (bonding curve and PumpSwap), at most every 5 minutes. The main payout wallet pays that network fee if it is set. A coin pays out only as fast as its fees come in.
+
+Launched coin wallets are never reused. The database stores only their public address and index; keys are derived when needed.
+
 ## Safety
 
 - Nothing is sent until `PAYOUTS_ENABLED=true` and `PAYOUT_PRIVATE_KEY` is set. Use a dedicated hot wallet funded with only what you plan to pay out.
 - `MAX_DAILY_PAYOUT_USD` pauses payouts once the last 24 hours reach the cap. Payouts also pause if the wallet balance is too low.
 - Each transaction's signature is saved before it is broadcast. If a send times out or the server stops, the next run checks that signature on-chain and marks it paid, or requeues it once its blockhash has expired — it is never sent twice.
-- Submissions are rate-limited to 5 per minute per IP.
+- Submissions are rate-limited to 5 per minute per IP; launches to 3.
+- When the main payout wallet pays for a coin's fee claim, the coin repays it in the same transaction (network fee and account rent), so claims can never drain the main wallet.
+- `MASTER_SEED` controls every launched coin's fees. Keep it only in the host's environment variables, with an offline backup.
 
 ## Settings
 

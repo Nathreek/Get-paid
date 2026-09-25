@@ -71,8 +71,9 @@ export async function judgeTweet(text, { ticker, apiKey, baseUrl, model, fetcher
   return { approved: verdict.approved, reason: String(verdict.reason || '').slice(0, 200) };
 }
 
-export function createVerifier({ ticker, coinAddress, campaignStart = 0, llm, fetcher = fetch }) {
-  return async function verify(post) {
+// verify(post, coin) checks against that coin's ticker and address; without one, against the site's own coin.
+export function createVerifier({ ticker: defaultTicker, coinAddress: defaultAddress, campaignStart = 0, llm, fetcher = fetch }) {
+  return async function verify(post, { ticker = defaultTicker, coinAddress = defaultAddress } = {}) {
     if (!ticker) throw unavailable('The campaign has not started yet — the coin ticker is not set.');
     const id = tweetIdOf(post);
     if (tweetedAt(id) < campaignStart) throw new Rejection('That post is older than the campaign. Please make a new post.');

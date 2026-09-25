@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url';
 import { waitUntil } from '@vercel/functions';
-import { createAppStore } from '../app.mjs';
+import { createApp } from '../app.mjs';
 import { createAppServer } from '../http-server.mjs';
 
-const store = await createAppStore();
+const { store, launcher } = await createApp();
 const server = createAppServer({
   directory: fileURLToPath(new URL('../dist/', import.meta.url)),
   store,
+  launcher,
   trustProxy: true,
   background: waitUntil,
 });

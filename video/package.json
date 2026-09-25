@@ -1,0 +1,13 @@
+{
+  "name": "get-paid-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs video",
+    "stills": "node render.mjs stills"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.0.0",
+    "qrcode": "^1.5.4"
+  }
+}

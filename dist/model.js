@@ -30,5 +30,17 @@ export function normalizeWallet(value) {
   if (wallet.length < 32 || wallet.length > 44 || base58Length(wallet) !== 32) throw invalid('That is not a valid Solana wallet address.');
   return wallet;
 }
-export const shortWallet = wallet => `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
+// Transaction signatures come back from wallets as bytes; Solana shows them in base58.
+export function encodeBase58(bytes) {
+  const digits = [];
+  for (const byte of bytes) {
+    let carry = byte;
+    for (let i = 0; i < digits.length; i++) { carry += digits[i] * 256; digits[i] = carry % 58; carry = Math.floor(carry / 58); }
+    while (carry) { digits.push(carry % 58); carry = Math.floor(carry / 58); }
+  }
+  let zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+  return '1'.repeat(zeros) + digits.reverse().map(digit => BASE58[digit]).join('');
+}
+export const shortWallet =wallet => `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 export const formatUsd = cents => `$${(cents / 100).toFixed(2)}`;

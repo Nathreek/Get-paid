@@ -2,17 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="Post about the coin on X, submit your Solana wallet, and get paid in SOL automatically.">
+  <meta name="theme-color" content="#0b0b0b"><meta name="description" content="Post about the coin on X, submit your Solana wallet, and get paid in SOL automatically. Or launch your own coin whose creator fees pay its shillers.">
   <title>GET-PAID — Shill. Get paid in SOL.</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='white'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='bold' letter-spacing='-2' fill='black'%3EGP%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css"><script type="module" src="client.js"></script>
+  <link rel="stylesheet" href="/styles.css"><script type="module" src="/client.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <div class="site-shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="GP — GET-PAID home"><img class="gp-logo" src="assets/gp-monogram.png" width="44" height="44" alt="GP"><span class="brand-name">GET-PAID</span></a>
+      <a class="brand" href="/" aria-label="GP — GET-PAID home"><img class="gp-logo" src="/assets/gp-monogram.png" width="44" height="44" alt="GP"><span class="brand-name">GET-PAID</span></a>
       <nav class="header-actions" aria-label="Main navigation">
+        <div class="nav-links"><a href="/coins">Coins</a><a href="/launch"><span class="new-tag">NEW</span>Launch a coin</a></div>
         <div class="treasury-wallet" role="group" aria-labelledby="treasury-label">
           <div class="treasury-details"><span id="treasury-label">Public treasury wallet</span><code id="treasury-address">LCpccbmKZkzNAZt9m5DgoD4Udu3yKmaocd9tedPYwjm</code></div>
           <button type="button" id="copy-treasury" class="icon-button" aria-label="Copy public treasury wallet" title="Copy public treasury wallet">⧉</button>
@@ -25,7 +26,9 @@
       <section class="intro" aria-labelledby="headline">
         <div class="spotlight-strip" role="group" aria-label="Latest payout">
           <div class="transaction-pill"><span class="transaction-icon" aria-hidden="true">↗</span><strong id="featured-amount" hidden></strong><span id="featured-label">Next up</span><span class="tiny-avatar" id="featured-avatar" aria-hidden="true">◎</span><strong id="featured-name">You could be next</strong></div>
+          <a class="announce-pill" id="announce" href="/launch"><span class="new-tag">NEW</span>Launch your own coin. Its fees pay its shillers.<span aria-hidden="true">→</span></a>
         </div>
+        <div class="coin-banner" id="coin-banner" hidden><img id="coin-image" alt="" width="64" height="64"><div><strong id="coin-name"></strong><span id="coin-meta"></span></div><div class="coin-links" id="coin-links"></div></div>
         <h1 id="headline">Shill the coin.<br><span>Get paid in SOL.</span></h1>
         <p>Post about <span class="ticker">the coin</span> on X, drop your wallet, and get paid automatically. Every payout is public on Solscan.</p>
         <div class="hero-actions"><a class="hero-button primary" href="#submit-title">Submit your post <span aria-hidden="true">↗</span></a><a class="hero-button" href="#how-title">How it works</a></div>
@@ -62,6 +65,26 @@
           <div class="empty-state" id="empty-state"><div class="orbit-art" aria-hidden="true"><span class="orbit-dot one"></span><span class="orbit-dot two"></span><div class="orbit-center">◎</div></div><h3>No payouts yet.</h3><p>Add your post and wallet.<br>Yours could be first.</p></div>
         </section>
       </div>
+      <section class="launch-promo" aria-labelledby="promo-title">
+        <div class="promo-copy">
+          <span class="eyebrow"><span class="new-tag">NEW</span> GET-PAID LAUNCHPAD</span>
+          <h2 id="promo-title">Launch a coin that pays its own shillers.</h2>
+          <p>Create your coin on pump.fun right here. Instead of going to the dev, its creator fees go to a payout wallet made just for that coin, and pay everyone who posts about it on X in SOL. The coin's own trading keeps its community shilling.</p>
+          <ul class="promo-points">
+            <li><span aria-hidden="true">01</span><div><b>Live on pump.fun in one click</b>Sign with Phantom, Solflare or Backpack. Add a first buy if you want one.</div></li>
+            <li><span aria-hidden="true">02</span><div><b>Fees locked to its shillers</b>The coin's creator is its GET-PAID payout wallet, so the dev can't take or move the fees.</div></li>
+            <li><span aria-hidden="true">03</span><div><b>Its own shill page</b>AI-checked posts, its own payout queue, and every payment public on Solscan.</div></li>
+          </ul>
+          <div class="promo-actions"><a class="hero-button primary" href="/launch">Launch a coin <span aria-hidden="true">↗</span></a><a class="hero-button" href="/coins">Browse coins</a></div>
+        </div>
+        <div class="promo-visual" aria-hidden="true">
+          <div class="flow-node"><span class="flow-icon">🚀</span><div><b>$YOURCOIN</b><small>trades on pump.fun</small></div></div>
+          <div class="flow-line"><span>creator fees</span></div>
+          <div class="flow-node vault"><span class="flow-icon">◎</span><div><b>Coin payout wallet</b><small>held by GET-PAID, not the dev</small></div></div>
+          <div class="flow-line"><span>paid in SOL</span></div>
+          <div class="flow-payouts"><span><i>🐸</i>@moonfrog<b>+0.05</b></span><span><i>🦊</i>@kai<b>+0.05</b></span><span><i>🐱</i>@mila<b>+0.04</b></span></div>
+        </div>
+      </section>
       <section class="how-it-works" aria-labelledby="how-title">
         <div class="how-heading"><div><span class="eyebrow">FROM POST TO PAYOUT</span><h2 id="how-title">How it works</h2></div><span class="workflow-tag">Automatic payouts</span></div>
         <ol class="steps visual">

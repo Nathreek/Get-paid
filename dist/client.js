@@ -4,6 +4,9 @@ import { examples } from './examples.js';
 const $=selector=>document.querySelector(selector);
 let snapshot={records:[],total:0,page:0,pages:1,pageSize:25},page=0,etag='',pollTimer,toastTimer;
 let syncing=false,pendingRefresh=false,submitting=false,failures=0,renderKey='';
+// On /coin/<mint address> the page runs that coin's campaign; its details come from the server.
+const coinId=location.pathname.match(/^\/coin\/([1-9A-HJ-NP-Za-km-z]{32,44})\/?$/)?.[1]||'main';
+let ticker=config.ticker,coinAddress=config.coinAddress,buyUrl='',coinReady=false;
 function element(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
 function link(text,href,label){const node=element('a','',text);node.href=href;node.target='_blank';node.rel='noopener noreferrer';node.setAttribute('aria-label',label);return node;}
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),5000);}
@@ -30,13 +33,14 @@ function pfp(record,cls='pfp'){
 // Tweet text with the coin's cashtag highlighted; built from text nodes only.
 function tweetText(text){
   const node=element('p','tweet-text');if(!text)return node;
-  const pattern=config.ticker?new RegExp(`(\$${config.ticker})(?![A-Za-z0-9_])`,'gi'):null;
-  for(const part of pattern?text.split(pattern):[text])node.append(pattern&&part.toUpperCase()===`$${config.ticker}`.toUpperCase()?element('strong','cashtag',part):document.createTextNode(part));
+  const pattern=ticker?new RegExp(`(\$${ticker})(?![A-Za-z0-9_])`,'gi'):null;
+  for(const part of pattern?text.split(pattern):[text])node.append(pattern&&part.toUpperCase()===`$${ticker}`.toUpperCase()?element('strong','cashtag',part):document.createTextNode(part));
   return node;
 }
 function stats(){
   $('#stat-paid').textContent=formatUsd(snapshot.paidCents||0);$('#stat-sol').textContent=snapshot.paidLamports?sol(snapshot.paidLamports):'paid in SOL';
   $('#stat-posts').textContent=snapshot.paidCount||0;$('#stat-wallets').textContent=snapshot.walletsPaid||0;$('#stat-queue').textContent=snapshot.queued||0;
+  if(coinId!=='main'&&typeof snapshot.feePoolLamports==='number')$('#coin-pool').textContent=`Fee pool: ${sol(snapshot.feePoolLamports)}`;
 }
 function render(){
   const key=JSON.stringify([snapshot.page,snapshot.total,Math.floor(Date.now()/60000),snapshot.records.map(record=>[record.id,record.status,record.amountCents])]);
@@ -74,8 +78,8 @@ function exampleCard(example){
   const card=element('li','tweet-mock'),head=element('div','tweet-head'),who=element('div','who');
   who.append(element('strong','',example.name),element('span','',`@${example.handle} · ${example.time}`));
   head.append(element('span','pfp emoji',example.pfp),who,element('span','x-logo','𝕏'));
-  const ticker=config.ticker?`$${config.ticker}`:'$TICKER',text=element('p','example-text');
-  example.text.split('{T}').forEach((part,i)=>{if(i)text.append(element('strong','cashtag',ticker));text.append(document.createTextNode(part));});
+  const cashtag=ticker?`$${ticker}`:'$TICKER',text=element('p','example-text');
+  example.text.split('{T}').forEach((part,i)=>{if(i)text.append(element('strong','cashtag',cashtag));text.append(document.createTextNode(part));});
   const actions=element('div','tweet-actions');
   for(const [name,count] of [['reply',''],['repost',example.reposts],['like',example.likes],['views',`${(example.likes*23/1000).toFixed(1)}K`]]){const item=element('span');item.innerHTML=icons[name];item.append(document.createTextNode(count));actions.append(item);}
   card.append(head,text,actions,element('p','approved-chip','✓ Approved'));
@@ -90,18 +94,17 @@ function buildMarquee(){
     marquee.append(track);
   });
 }
-buildMarquee();
 function schedule(){clearTimeout(pollTimer);if(!document.hidden)pollTimer=setTimeout(()=>refresh(),failures?Math.min(30000,5000*failures):4000+Math.random()*2000);}
 async function refresh(force=false){
   if(syncing){if(force)pendingRefresh=true;return;}syncing=true;const requestedPage=page;
-  try{const {response,data}=await request(`/api/state?page=${requestedPage}`,{headers:!force&&etag?{'If-None-Match':etag}:{}});if(page!==requestedPage){pendingRefresh=true;return;}if(data){snapshot=data;page=data.page;etag=response.headers.get('etag')||'';render();feature(data.latestPayout);}failures=0;connection('');}
-  catch{failures++;connection('Connection interrupted. Retrying automatically.');}
+  try{const {response,data}=await request(`/api/state?page=${requestedPage}&coin=${coinId}`,{headers:!force&&etag?{'If-None-Match':etag}:{}});if(page!==requestedPage){pendingRefresh=true;return;}if(data){if(!coinReady)applyCoin(data.coin);snapshot=data;page=data.page;etag=response.headers.get('etag')||'';render();feature(data.latestPayout);}failures=0;connection('');}
+  catch(error){failures++;connection(error.status===404?'This coin is not on GET-PAID. If it was launched a moment ago, it appears within a minute.':'Connection interrupted. Retrying automatically.');}
   finally{syncing=false;if(pendingRefresh){pendingRefresh=false;void refresh(true);}else schedule();}
 }
 async function submit(postValue,walletValue){
   if(submitting)throw new Error('Your previous submission is still being checked. Please wait a moment.');
   submitting=true;
-  try{const post=normalizePost(postValue),wallet=normalizeWallet(walletValue);const {data}=await request('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post,wallet})});page=0;etag='';await refresh(true);toast('Approved! Your SOL payout is queued.');return data.record;}
+  try{const post=normalizePost(postValue),wallet=normalizeWallet(walletValue);const {data}=await request('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post,wallet,coin:coinId})});page=0;etag='';await refresh(true);toast('Approved! Your SOL payout is queued.');return data.record;}
   finally{submitting=false;}
 }
 $('#submission-form').addEventListener('submit',async event=>{
@@ -115,16 +118,34 @@ $('#submission-form').addEventListener('submit',async event=>{
 for(const [id,error] of [['post-url','post-error'],['wallet','wallet-error']])$(`#${id}`).addEventListener('input',()=>{$(`#${id}`).removeAttribute('aria-invalid');$(`#${error}`).textContent='';$('#form-error').textContent='';});
 $('#previous-page').addEventListener('click',()=>{page=Math.max(0,page-1);etag='';refresh(true);});
 $('#next-page').addEventListener('click',()=>{page++;etag='';refresh(true);});
-if(config.ticker)for(const node of document.querySelectorAll('.ticker'))node.textContent=`$${config.ticker}`;
-if(config.coinAddress){$('#coin-address').textContent=config.coinAddress;$('#contract-tag').hidden=true;$('#copy-address').hidden=false;$('#buy-coin-address').textContent=config.coinAddress;$('#buy-ca-status').hidden=true;$('#buy-copy-address').hidden=false;}
-async function copyAddress(){try{await navigator.clipboard.writeText(config.coinAddress);toast('Coin address copied.');}catch{toast('Select the address to copy it.');}}
+// Fills the page with the coin's ticker, address and payout wallet. The main page uses config.js; coin pages wait for the server.
+function applyCoin(coin){
+  coinReady=true;
+  if(coin?.launched){
+    ticker=coin.ticker;coinAddress=coin.coinAddress;buyUrl=`https://pump.fun/coin/${coin.coinAddress}`;
+    document.title=`$${coin.ticker} · Shill it. Get paid in SOL. · GET-PAID`;
+    $('#headline').firstChild.textContent=`Shill $${coin.ticker}.`;
+    $('#treasury-label').textContent=`$${coin.ticker} payout wallet`;$('#treasury-address').textContent=coin.payoutWallet;
+    if(coin.image){$('#coin-image').src=coin.image;$('#coin-image').referrerPolicy='no-referrer';}else $('#coin-image').hidden=true;
+    $('#coin-name').textContent=coin.name;
+    const meta=$('#coin-meta');meta.replaceChildren(document.createTextNode(`$${coin.ticker} · creator fees pay its shillers · `),element('span','','')); meta.lastChild.id='coin-pool';
+    const links=$('#coin-links');links.replaceChildren(link('pump.fun ↗',buyUrl,`$${coin.ticker} on pump.fun (opens in a new tab)`));
+    for(const [label,href] of [['𝕏',coin.twitter],['Telegram',coin.telegram],['Website',coin.website]])if(href)links.append(link(label,href,`$${coin.ticker} ${label} (opens in a new tab)`));
+    $('#coin-banner').hidden=false;$('#announce').hidden=true;
+  }
+  if(ticker)for(const node of document.querySelectorAll('.ticker'))node.textContent=`$${ticker}`;
+  if(coinAddress){$('#coin-address').textContent=coinAddress;$('#contract-tag').hidden=true;$('#copy-address').hidden=false;$('#buy-coin-address').textContent=coinAddress;$('#buy-ca-status').hidden=true;$('#buy-copy-address').hidden=false;}
+  buildMarquee();
+}
+if(coinId==='main')applyCoin(null);
+async function copyAddress(){try{await navigator.clipboard.writeText(coinAddress);toast('Coin address copied.');}catch{toast('Select the address to copy it.');}}
 $('#copy-address').addEventListener('click',copyAddress);$('#buy-copy-address').addEventListener('click',copyAddress);
 $('#copy-treasury').addEventListener('click',async()=>{
   const address=$('#treasury-address');
   try{await navigator.clipboard.writeText(address.textContent.trim());toast('Treasury wallet copied.');}
   catch{const selection=window.getSelection(),range=document.createRange();range.selectNodeContents(address);selection.removeAllRanges();selection.addRange(range);toast('Wallet address selected. Copy it to your clipboard.');}
 });
-$('#buy').addEventListener('click',()=>$('#buy-dialog').showModal());
+$('#buy').addEventListener('click',()=>buyUrl?window.open(buyUrl,'_blank','noopener,noreferrer'):$('#buy-dialog').showModal());
 $('#buy-dialog').addEventListener('click',event=>{if(event.target===$('#buy-dialog')){const r=event.target.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)event.target.close();}});
 document.addEventListener('visibilitychange',()=>{clearTimeout(pollTimer);if(!document.hidden)refresh(true);});
 window.addEventListener('online',()=>refresh(true));
