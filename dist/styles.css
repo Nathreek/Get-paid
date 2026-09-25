@@ -165,3 +165,7 @@ a.who-name:hover{text-decoration:underline}
 @media(max-width:900px){.launch-promo{grid-template-columns:1fr;padding:24px}.header-actions{gap:10px}.nav-links a{padding:0 14px}}
 @media(max-width:700px){.launch-promo{padding:20px;border-radius:18px}.promo-actions .hero-button{flex:1;justify-content:center}.announce-pill{font-size:11px;text-align:left}}
 .fail-note{flex-basis:100%;color:#8f8f8f;font-style:italic}
+.brand-name{white-space:nowrap}
+@media(max-width:1100px) and (min-width:701px){.nav-links{gap:8px}.nav-links a{padding:0 13px}.header-actions{gap:10px}}
+@media(max-width:700px){.nav-links a:last-child:nth-child(odd){grid-column:1/-1}}
+@media(max-width:1180px) and (min-width:701px){.header-actions{flex-wrap:wrap;justify-content:flex-end;row-gap:12px}.treasury-wallet{order:3;flex-basis:100%;justify-content:space-between}}
