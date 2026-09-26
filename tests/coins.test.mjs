@@ -246,3 +246,18 @@ test("the site coin's treasury collects its own pump.fun creator rewards when it
     assert.equal((await store.state()).records[0].status, 'sent');
   } finally { store.close(); }
 });
+
+test('auto-claim collects the site coin fees on its own, never overlaps, and the CA can be removed again', async () => {
+  let calls = 0, release;
+  const store = await createStore({ url: ':memory:', verify: null, mainCoin: { ticker: 'GETPAID' }, price: null, log: quiet,
+    claimFees: async coin => { calls++; assert.equal(coin.id, 'main'); await new Promise(resolve => { release = resolve; }); return true; } });
+  try {
+    const first = store.autoClaim();
+    assert.equal(await store.autoClaim(), false, 'a claim still running is not started twice');
+    while (!release) await new Promise(resolve => setTimeout(resolve, 1));
+    release(); assert.equal(await first, true); assert.equal(calls, 1);
+    await store.setMainCoinAddress(MINT);
+    await store.clearMainCoinAddress();
+    assert.equal((await store.state()).coin.coinAddress, '', 'back to "Coming soon"');
+  } finally { store.close(); }
+});

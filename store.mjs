@@ -190,6 +190,10 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     return Boolean(changed);
   }
   const setting = async key => (await one('SELECT value FROM metadata WHERE key=?', [key]))?.value ?? null;
+  async function clearMainCoinAddress() {
+    await run('DELETE FROM metadata WHERE key=?', [MAIN_CA_KEY]);
+    await bump();
+  }
   async function setMainCoinAddress(address) {
     const value = normalizeWallet(address);
     await saveSetting(MAIN_CA_KEY, value);
@@ -291,6 +295,20 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     await bump();
   }
 
+  // Collects the site coin's creator fees into the treasury on a timer (server.mjs, every few seconds), so they land
+  // as soon as they exist instead of when a payout needs them. Nothing is sent below the minimum claim.
+  let autoClaiming = false;
+  async function autoClaim() {
+    if (!claimFees || autoClaiming) return false;
+    autoClaiming = true;
+    try {
+      const claimed = await claimFees(await findCoin(MAIN_COIN));
+      if (claimed) { pools.delete(MAIN_COIN); reads.clear(); }
+      return claimed;
+    } catch (error) { log.error?.('Auto-claim failed:', error.message); return false; }
+    finally { autoClaiming = false; }
+  }
+
   // Each run pays one entry for each of up to PARALLEL_COINS coins at once: every coin has its own wallet, so their
   // payouts never conflict. Coins take turns, least recently served first, and only coins that are due are picked.
   let running = false;
@@ -311,5 +329,5 @@ export async function createStore({ url, authToken, verify, recheck = null, paye
     } finally { running = false; }
   }
 
-  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, hiddenCoins, setCoinStatus, setCoinHidden, setMainCoinAddress, setting, saveSetting, processPayouts, close: () => db.close() };
+  return { submit, state, coins, reserveCoin, tickerTaken, coinRow, pendingCoins, hiddenCoins, setCoinStatus, setCoinHidden, setMainCoinAddress, clearMainCoinAddress, setting, saveSetting, processPayouts, autoClaim, close: () => db.close() };
 }

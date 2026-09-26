@@ -9,7 +9,7 @@ function card(coin){
   const main=coin.id==='main',item=element('li'),anchor=element('a','coin-card');anchor.href=main?'/':`/coin/${coin.id}`;
   const head=element('div','coin-card-head');
   if(coin.image){const img=element('img');img.src=coin.image;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.replaceWith(element('span','coin-fallback',coin.ticker.slice(0,1)));head.append(img);}
-  else if(main){const img=element('img');img.src='/assets/gp-monogram.png';img.alt='';img.style.background='#fff';head.append(img);}
+  else if(main){const img=element('img');img.src='/assets/getpaid-logo.png';img.alt='';head.append(img);}
   else head.append(element('span','coin-fallback',coin.ticker.slice(0,1)));
   const who=element('div');who.style.minWidth='0';who.append(element('strong','',coin.name),element('span','',`$${coin.ticker||config.ticker}`));head.append(who);
   if(main)head.append(element('span','home-tag','HOME'));

@@ -169,3 +169,5 @@ a.who-name:hover{text-decoration:underline}
 @media(max-width:1100px) and (min-width:701px){.nav-links{gap:8px}.nav-links a{padding:0 13px}.header-actions{gap:10px}}
 @media(max-width:700px){.nav-links a:last-child:nth-child(odd){grid-column:1/-1}}
 @media(max-width:1180px) and (min-width:701px){.header-actions{flex-wrap:wrap;justify-content:flex-end;row-gap:12px}.treasury-wallet{order:3;flex-basis:100%;justify-content:space-between}}
+/* Site logo: a full-colour image */
+.gp-logo{filter:none!important;background:none!important;object-fit:cover;border-radius:12px}
