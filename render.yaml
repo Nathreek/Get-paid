@@ -1,0 +1,37 @@
+# Render Blueprint: New → Blueprint → pick this repo. Render asks for every `sync: false` value when creating the
+# service; paste them from your .env. Secrets never go in this file.
+# Switch `plan` to starter (0.5 CPU, always on) once a card is on the account.
+services:
+  - type: web
+    name: get-paid
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci
+    startCommand: node server.mjs
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # Render's proxy sets X-Forwarded-For; rate limits need the visitor's real IP.
+      - key: TRUST_PROXY
+        value: "true"
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SOLANA_RPC_URL
+        sync: false
+      - key: PAYOUT_PRIVATE_KEY
+        sync: false
+      - key: PAYOUTS_ENABLED
+        sync: false
+      - key: MASTER_SEED
+        sync: false
+      - key: PINATA_JWT
+        sync: false
+      - key: PINATA_GATEWAY
+        sync: false
